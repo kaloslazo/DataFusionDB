@@ -1,12 +1,27 @@
+#include "Record.hpp"
+#include "SQLParser.hpp"
+#include <string>
+#include <vector>
 #include <pybind11/pybind11.h>
-using namespace std;
+#include <pybind11/stl.h>
+#include <pybind11/complex.h>
+#include <pybind11/functional.h>
 
-// -> funciones para generar conexion con python frontend
-int insert_record(const string& name, int song_id) {
-  return 0;
+using namespace std;
+namespace py = pybind11;
+
+// modularization - invoque parser for execute query
+SQLParser sql_parser;
+vector<Record> execute_query(const string &query) {
+  return sql_parser.execute_query(query);
 };
 
-// -> funcion python para conexion con frontend
+// handle python cpp interconection by pybind11
 PYBIND11_MODULE(link_connection, m) {
-  m.def("insert_record", &insert_record, "A function to insert a record");
-}
+  py::class_<Record>(m, "Record")
+    .def(py::init<string, string>())
+    .def_readwrite("name", &Record::name)
+    .def_readwrite("id", &Record::id);
+
+  m.def("execute_query", &execute_query, "Function for handle SQL queries");
+};  
