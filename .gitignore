@@ -1,0 +1,12 @@
+# archivos de compilacion
+*.o
+*.so
+*.pyd
+build/
+
+# archivos de entorno
+*.env
+*.log
+
+# archivos de configuracion
+*.conf
