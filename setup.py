@@ -11,11 +11,18 @@ python_include_dir = sysconfig.get_path("include");
 ext_modules = [
     Pybind11Extension(
         "link_connection",
-        ["backend/link_connection.cpp"],
+        [
+            "backend/link_connection.cpp",
+            "backend/SQLParser.cpp",
+            "backend/Record.cpp",
+        ],
         include_dirs=[
             pyb11_include,
-            python_include_dir
+            python_include_dir,
+            "backend",
         ],
+        language = "c++",
+        extra_compile_args = ["-std=c++17", "-g"],
     ),
 ];
 
