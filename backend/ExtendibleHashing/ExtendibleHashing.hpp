@@ -25,8 +25,8 @@ public:
   // handle the close of the file
   void Close();
 
-  // insert key into hashing index, receive key and address of record
-  bool Insert(int& key, int rec_address);
+  // insert receives object record, we determine the key and adress inside
+  bool Insert(Record record);
   
   // remove record using key from hashing index
   bool Remove(int& key);
@@ -35,7 +35,10 @@ public:
   optional<Record> Search(int& key);
 
   // print the directory and buckets
-  void Print(ofstream& out); 
+  void Print(); 
+
+  // load from csv and insert into extendible hashing
+  void Load_csv(string filename);
 
 protected:
   // files for save data and save buckets
@@ -64,7 +67,7 @@ protected:
   void Expand_directory();
   
   // split the bucket, handle the insertion of the overflow record
-  void Split_bucket(int& key, int first, int last);
+  void Split_bucket(int& key, int bucket_directory_address);
 
   // takes bucket and save it in secondary memory
   void Save_bucket(Bucket* bucket, int bucket_directory_address);

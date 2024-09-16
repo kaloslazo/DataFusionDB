@@ -12,16 +12,17 @@ Record::Record() {
   term = -1;
 };
 
-Record::Record(int _key, char _name[10], int _age, int _term) {
+Record::Record(int _key, const char* _name, int _age, int _term) {
   key = _key;
-  strncpy(name, _name, 10);
+  strncpy(name, _name, sizeof(name) - 1);
+  name[sizeof(name) - 1] = '\0';
   age = _age;
   term = _term;
 };
 
-void Record::show_record() {
-  cout << "Key: " << setw(4) << key << endl;
-  cout << "Name: " << setw(10) << name << endl;
-  cout << "Age: " << setw(4) << age << endl;
-  cout << "Term: " << setw(4) << term << endl;
+void Record::Print() {
+  string sep = " | ";
+
+  //one line with separator and setw
+  cout << sep << setw(5) << key << sep << setw(10) << name << sep << setw(4) << age << sep << setw(4) << term << endl;
 };

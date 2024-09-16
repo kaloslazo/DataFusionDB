@@ -1,6 +1,7 @@
 #ifndef RECORD_HPP
 #define RECORD_HPP
 
+// size 4 + 10 + 4 + 4 = 22 bytes
 struct Record {
   int key;
   char name[10];
@@ -8,9 +9,9 @@ struct Record {
   int term;
 
   Record();
-  Record(int _key, char _name[10], int _age, int _term);
+  Record(int _key, const char* _name, int _age, int _term);
 
-  void show_record();
+  void Print();
 };
 
 #endif // RECORD_HPP

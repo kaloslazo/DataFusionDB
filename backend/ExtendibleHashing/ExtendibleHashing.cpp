@@ -19,6 +19,8 @@ ExtendibleHashing::~ExtendibleHashing() {
 
 void ExtendibleHashing::Close() {
   // close files cuz we are done :)
+  cout << "[!] Closing files" << endl;
+
   if (File_data.is_open()) {
     cout << "[-] Closing file data" << endl;
     File_data.close();
@@ -28,6 +30,12 @@ void ExtendibleHashing::Close() {
     cout << "[-] Closing file buckets" << endl;
     File_buckets.close();
   };
+};
+
+// hash function converts key to hash value using binary approach
+int ExtendibleHashing::Hash(int& key) {
+  // return the global depth most significant bits of the key - index of the bucket in the directory
+  return key & ((1 << Global_depth) - 1); 
 };
 
 void ExtendibleHashing::Create(string filename_data, string filename_buckets) {
@@ -98,11 +106,10 @@ void ExtendibleHashing::Save_bucket(Bucket* bucket, int bucket_directory_index) 
 
   // save the bucket to the file
   File_buckets.write((char*) bucket, sizeof(Bucket));
+  File_buckets.flush();
 
   // save the bucket address in the directory
   Bucket_addresses[bucket_directory_index] = bucket_offset;
-  
-  File_buckets.flush();
 };
 
 Bucket* ExtendibleHashing::Load_bucket(int bucket_directory_index) {
@@ -118,3 +125,134 @@ Bucket* ExtendibleHashing::Load_bucket(int bucket_directory_index) {
 
   return bucket;
 };
+
+// insert record handling hash function and split bucket
+bool ExtendibleHashing::Insert(Record record) {
+  int bucket_directory_index = Hash(record.key);
+
+  while (true) {
+    Bucket* bucket = Load_bucket(bucket_directory_index);
+
+    if (bucket->Current_size < bucket->Max_bucket_size) {
+      bucket->Insert(record);
+      cout << "[+] Inserted record and saved key " << record.key << " in bucket in position " << bucket_directory_index << endl;
+      Save_bucket(bucket, bucket_directory_index);
+      return true;
+    }
+
+    cout << "[!] Bucket is full. Splitting bucket" << endl;
+    Split_bucket(record.key, bucket_directory_index);
+
+    // Recompute bucket index after splitting
+    bucket_directory_index = Hash(record.key);
+  }
+}
+
+
+// handle split bucket and expand directory
+void ExtendibleHashing::Split_bucket(int& key, int bucket_directory_index) {
+  Bucket* old_bucket = Load_bucket(bucket_directory_index);
+
+  // if local depth is equal to global depth, expand directory
+  if (old_bucket->Local_depth == Global_depth) {
+    cout << "[!] Expanding directory" << endl;
+    Expand_directory();
+  }
+
+  // increment the local depth of the bucket
+  old_bucket->Local_depth++;
+
+  // create new bucket with the same max size
+  Bucket* new_bucket = new Bucket(old_bucket->Max_bucket_size);
+  new_bucket->Local_depth = old_bucket->Local_depth;
+
+  // calculate new bucket index
+  int new_bucket_index = bucket_directory_index | (1 << (old_bucket->Local_depth - 1));
+
+  // redistribute the records between the two buckets (old and new)
+  cout << "[+] Redistributing records between buckets" << endl;
+
+  for (int i = 0; i < old_bucket->Current_size; i++) {
+    Record* record = &old_bucket->Records[i];
+    int hash = Hash(record->key);
+
+    if ((hash & ((1 << old_bucket->Local_depth) - 1)) == new_bucket_index) {
+      new_bucket->Insert(*record);
+      old_bucket->Remove(record->key);
+      i--; // Adjust index because we removed an element
+    }
+  }
+
+  // Update directory
+  for (int i = 0; i < Num_cells; i++) {
+    if ((i & ((1 << old_bucket->Local_depth) - 1)) == new_bucket_index) {
+      Bucket_addresses[i] = File_buckets.tellp();
+    }
+  };
+
+  cout << "[+] Redistributed records" << endl;
+  Save_bucket(old_bucket, bucket_directory_index);
+  Save_bucket(new_bucket, new_bucket_index);
+};
+
+// expand directory (double the size of the directory)
+void ExtendibleHashing::Expand_directory() {
+  // double size of directory
+  int new_num_cells = 2 * Num_cells;
+  vector<int> new_bucket_addresses(new_num_cells);
+
+  // copy the old directory to the new directory
+  for (int i = 0; i < Num_cells; i++) {
+    new_bucket_addresses[i] = Bucket_addresses[i];
+    new_bucket_addresses[i + Num_cells] = Bucket_addresses[i];
+  }
+
+  Global_depth++;
+  Num_cells = new_num_cells;
+  Bucket_addresses = new_bucket_addresses;
+
+  // Update the file with the new directory
+  File_data.seekp(0, ios::beg);
+  File_data.write((char*) (&Bucket_addresses[0]), Num_cells * sizeof(int));
+  File_data.flush();
+}
+
+// print all records
+void ExtendibleHashing::Print() {
+  cout << endl << "[!] Print directory with " << Num_cells << " cells" << endl;
+  
+  for (int i = 0; i < Num_cells; i++) {
+    cout << "[+] Cell " << i << " with bucket address " << Bucket_addresses[i] << endl;
+    Bucket* bucket = Load_bucket(i);
+    bucket->Print();
+    cout << endl;
+  };
+};
+
+// load from csv and insert into extendible hashing
+void ExtendibleHashing::Load_csv(string filename) {
+  ifstream file(filename, ios::in);
+  if (!file.is_open()) {
+    cout << "[!] Error. Can't open file: " << filename << endl;
+    throw "Error. Can't open file";
+  };
+
+  string line;
+  getline(file, line); // skip header
+
+  cout << "[!] Loading data from file " << filename << endl;
+  while (getline(file, line)) {
+    int key, age, term;
+    string name;
+
+    stringstream ss(line);
+    string token;
+
+    getline(ss, token, ','); key = stoi(token);
+    getline(ss, name, ',');
+    getline(ss, token, ','); age = stoi(token);
+    getline(ss, token, ','); term = stoi(token);
+
+    Insert(Record(key, name.c_str(), age, term));
+  };
+}

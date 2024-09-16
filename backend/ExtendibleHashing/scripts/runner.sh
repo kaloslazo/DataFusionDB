@@ -5,12 +5,12 @@ if [ -f "./build/main.out" ]; then
     sudo rm -r "./build/main.out";
 fi
 
-if [ -f "./file_data.dat" ]; then
-    sudo rm -r "./file_data.dat";
+if [ -f "./data/file_data.dat" ]; then
+    sudo rm -r "./data/file_data.dat";
 fi
 
-if [ -f "./file_buckets.dat" ]; then
-    sudo rm -r "./file_buckets.dat";
+if [ -f "./data/file_buckets.dat" ]; then
+    sudo rm -r "./data/file_buckets.dat";
 fi
 
 # compile the code and run the executable
