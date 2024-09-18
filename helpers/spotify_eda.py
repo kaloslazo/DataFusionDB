@@ -49,7 +49,6 @@ int_columns = [
     'pandora_streams', 'soundcloud_streams', 'shazam_counts', 'explicit_track'
 ];
 
-df['release_date'] = pd.to_datetime(df['release_date'], format = '%m/%d/%Y')
 df[int_columns] = df[int_columns].replace({',': ''}, regex = True).astype(int)
 
 # ver el tamaño minimo y maximo de columnas de texto
@@ -64,4 +63,7 @@ print(df.select_dtypes(include = ["object"]).apply(lambda x: x.str.len().max()))
 # mostrar ejemplos de filas
 print(delimiter);
 print("Example rows:");
-print(df.sample(5));
+print(df.sample(20));
+
+# guardar el dataframe limpio
+df.to_csv('./data/spotify_data_clean.csv', index = False);

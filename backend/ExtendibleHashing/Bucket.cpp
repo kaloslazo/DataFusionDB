@@ -29,10 +29,10 @@ int Bucket::Insert(Record& record) {
   return 0;
 };
 
-void Bucket::Remove(int& key) {
+void Bucket::Remove(char key[12]) {
   // search for record in bucket (o(k^2))
   for (int i = 0; i < Current_size; i++) {
-    if (Records[i].key == key) {
+    if (Records[i].isrc == key) {
       // remove record from bucket shifting all records to the left (new space complexity O(k))
       for (int j = i; j < Current_size - 1; j++) {
         Records[j] = Records[j + 1];

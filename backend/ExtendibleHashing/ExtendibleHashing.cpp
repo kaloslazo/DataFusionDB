@@ -1,6 +1,7 @@
 #include "ExtendibleHashing.hpp"
 #include "Bucket.cpp"
 #include <cmath>
+#include <functional>
 #include <iostream>
 
 using namespace std;
@@ -33,9 +34,14 @@ void ExtendibleHashing::Close() {
 };
 
 // hash function converts key to hash value using binary approach
-int ExtendibleHashing::Hash(int& key) {
+int ExtendibleHashing::Hash(char key[12]) {
+  // convert key to hash using hash function (char*)
+  string str_key(key, 12);
+  hash<string> hash_str;
+  size_t key_hash = hash_str(str_key);
+
   // return the global depth most significant bits of the key - index of the bucket in the directory
-  return key & ((1 << Global_depth) - 1); 
+  return key_hash & ((1 << Global_depth) - 1); 
 };
 
 void ExtendibleHashing::Create(string filename_data, string filename_buckets) {
@@ -128,29 +134,29 @@ Bucket* ExtendibleHashing::Load_bucket(int bucket_directory_index) {
 
 // insert record handling hash function and split bucket
 bool ExtendibleHashing::Insert(Record record) {
-  int bucket_directory_index = Hash(record.key);
+  int bucket_directory_index = Hash(record.isrc);
 
   while (true) {
     Bucket* bucket = Load_bucket(bucket_directory_index);
 
     if (bucket->Current_size < bucket->Max_bucket_size) {
       bucket->Insert(record);
-      cout << "[+] Inserted record and saved key " << record.key << " in bucket in position " << bucket_directory_index << endl;
+      cout << "[+] Inserted record and saved key " << record.isrc << " in bucket in position " << bucket_directory_index << endl;
       Save_bucket(bucket, bucket_directory_index);
       return true;
     }
 
     cout << "[!] Bucket is full. Splitting bucket" << endl;
-    Split_bucket(record.key, bucket_directory_index);
+    Split_bucket(record.isrc, bucket_directory_index);
 
     // Recompute bucket index after splitting
-    bucket_directory_index = Hash(record.key);
+    bucket_directory_index = Hash(record.isrc);
   }
 }
 
 
 // handle split bucket and expand directory
-void ExtendibleHashing::Split_bucket(int& key, int bucket_directory_index) {
+void ExtendibleHashing::Split_bucket(char key[12], int bucket_directory_index) {
   Bucket* old_bucket = Load_bucket(bucket_directory_index);
 
   // if local depth is equal to global depth, expand directory
@@ -174,11 +180,11 @@ void ExtendibleHashing::Split_bucket(int& key, int bucket_directory_index) {
 
   for (int i = 0; i < old_bucket->Current_size; i++) {
     Record* record = &old_bucket->Records[i];
-    int hash = Hash(record->key);
+    int hash = Hash(record->isrc);
 
     if ((hash & ((1 << old_bucket->Local_depth) - 1)) == new_bucket_index) {
       new_bucket->Insert(*record);
-      old_bucket->Remove(record->key);
+      old_bucket->Remove(record->isrc);
       i--; // Adjust index because we removed an element
     }
   }
@@ -234,25 +240,54 @@ void ExtendibleHashing::Load_csv(string filename) {
   ifstream file(filename, ios::in);
   if (!file.is_open()) {
     cout << "[!] Error. Can't open file: " << filename << endl;
-    throw "Error. Can't open file";
-  };
+    throw runtime_error("Error. Can't open file");
+  }
 
   string line;
   getline(file, line); // skip header
 
   cout << "[!] Loading data from file " << filename << endl;
   while (getline(file, line)) {
-    int key, age, term;
-    string name;
+    char track[100], album_name[100], artist[50], release_date[10], isrc[12];
+    int all_time_rank = 0, track_score = 0, spotify_streams = 0, spotify_popularity = 0;
+    int youtube_views = 0, tiktok_views = 0, airplay_spins = 0, siriusmxm_spins = 0;
+    int pandora_streams = 0, soundcloud_streams = 0, shazam_counts = 0, explicit_tracks = 0;
 
     stringstream ss(line);
     string token;
 
-    getline(ss, token, ','); key = stoi(token);
-    getline(ss, name, ',');
-    getline(ss, token, ','); age = stoi(token);
-    getline(ss, token, ','); term = stoi(token);
+    auto safe_stoi = [](const string& str, int default_value = 0) -> int {
+      try {
+        return str.empty() ? default_value : stoi(str);
+      } catch (const std::invalid_argument&) {
+        return default_value;
+      } catch (const std::out_of_range&) {
+        return default_value;
+      }
+    };
 
-    Insert(Record(key, name.c_str(), age, term));
-  };
+    getline(ss, token, ','); strncpy(track, token.c_str(), sizeof(track) - 1); track[sizeof(track) - 1] = '\0';
+    getline(ss, token, ','); strncpy(album_name, token.c_str(), sizeof(album_name) - 1); album_name[sizeof(album_name) - 1] = '\0';
+    getline(ss, token, ','); strncpy(artist, token.c_str(), sizeof(artist) - 1); artist[sizeof(artist) - 1] = '\0';
+    getline(ss, token, ','); strncpy(release_date, token.c_str(), sizeof(release_date) - 1); release_date[sizeof(release_date) - 1] = '\0';
+    getline(ss, token, ','); strncpy(isrc, token.c_str(), sizeof(isrc) - 1); isrc[sizeof(isrc) - 1] = '\0';
+
+    getline(ss, token, ','); all_time_rank = safe_stoi(token);
+    getline(ss, token, ','); track_score = safe_stoi(token);
+    getline(ss, token, ','); spotify_streams = safe_stoi(token);
+    getline(ss, token, ','); spotify_popularity = safe_stoi(token);
+    getline(ss, token, ','); youtube_views = safe_stoi(token);
+    getline(ss, token, ','); tiktok_views = safe_stoi(token);
+    getline(ss, token, ','); airplay_spins = safe_stoi(token);
+    getline(ss, token, ','); siriusmxm_spins = safe_stoi(token);
+    getline(ss, token, ','); pandora_streams = safe_stoi(token);
+    getline(ss, token, ','); soundcloud_streams = safe_stoi(token);
+    getline(ss, token, ','); shazam_counts = safe_stoi(token);
+    getline(ss, token, ','); explicit_tracks = safe_stoi(token);
+
+    Record new_record(track, album_name, artist, release_date, isrc, all_time_rank, track_score, spotify_streams, spotify_popularity, youtube_views, tiktok_views, airplay_spins, siriusmxm_spins, pandora_streams, soundcloud_streams, shazam_counts, explicit_tracks);
+    new_record.Print();
+
+    Insert(new_record);
+  }
 }

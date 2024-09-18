@@ -7,7 +7,7 @@ int main() {
   ExtendibleHashing eh(1, 3);
 
   eh.Create("./data/file_data.dat", "./data/file_buckets.dat");
-  eh.Load_csv("./data/data.csv");
+  eh.Load_csv("./data/spotify_data_clean.csv");
   eh.Print();
 
   return 0;

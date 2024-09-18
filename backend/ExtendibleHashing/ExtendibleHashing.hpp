@@ -29,10 +29,10 @@ public:
   bool Insert(Record record);
   
   // remove record using key from hashing index
-  bool Remove(int& key);
+  bool Remove(char key[12]);
 
   // search for record, returns the the record
-  optional<Record> Search(int& key);
+  optional<Record> Search(char key[12]);
 
   // print the directory and buckets
   void Print(); 
@@ -61,13 +61,13 @@ protected:
   int Num_cells;
 
   // hash function converts key to hash value using binary approach
-  int Hash(int& key);
+  int Hash(char key[12]);
   
   // directory expansion for double the current size
   void Expand_directory();
   
   // split the bucket, handle the insertion of the overflow record
-  void Split_bucket(int& key, int bucket_directory_address);
+  void Split_bucket(char key [12], int bucket_directory_address);
 
   // takes bucket and save it in secondary memory
   void Save_bucket(Bucket* bucket, int bucket_directory_address);

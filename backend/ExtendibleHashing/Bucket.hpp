@@ -13,10 +13,10 @@ public:
   int Insert(Record& record);
 
   // remove record from bucket
-  void Remove(int& key);
+  void Remove(char key[12]); // replace with typename <T>
 
   // search for record in bucket
-  Record* Search(int& key);
+  Record* Search(char key[12]);
 
   // redistribute records between two buckets
   void Redistribute(Bucket& bucket);
