@@ -72,38 +72,69 @@ void SequentialFile::insert(Record record){
 };
 
 void SequentialFile::remove_record(int key) {
-    // Read the records in aux file
-    File_data.open(aux_data, ios::in | ios::out | ios::binary);
-    File_data.seekg(0, ios::end);
-
-    Record aux;
-    while(File_data.read((char*) &aux, Record_size)) {
-        if (aux.key == key) {
-            // Erase the record
-            File_data.seekg(-Record_size, ios::cur);
-            Record empty;
-            File_data.write((char*) &empty, Record_size);
-            break;
-        }
-    }
-
-    //Compact the file
-    File_data.seekg(0, ios::beg);
+    Record record;
     vector<Record> aux_records;
-    while(File_data.read((char*) &aux, Record_size)) 
-        if (aux.key != -1) aux_records.push_back(aux);
-    
+    bool flag = false;
+    //Search linearly in the auxiliary file
+    File_data.open(aux_data, ios::in | ios::out | ios::binary);
+    File_data.seekg(0, ios::beg);
+    while (File_data.read((char*) &record, Record_size)) {
+        if (record.key == key){
+            cout<<"Record found in aux data"<<endl;
+            flag = true;
+            continue;
+        }
+        aux_records.push_back(record);
+    }
     File_data.close();
 
-    File_data.open(aux_data, ios::in | ios::out | ios::binary);
-    File_data.seekp(0, ios::beg);
-    for (Record record : aux_records) {
+    if (flag) {
+        remove(aux_data.c_str());
+
+        ofstream file2(aux_data, ios::app);
+        file2.close();
+
+        File_data.open(aux_data, ios::in | ios::out | ios::binary);
+        for (Record record : aux_records) {
+            File_data.write((char*) &record, Record_size);
+        }
+        File_data.close();
+        return;
+    }
+
+    //Search linearly in the data file
+    vector<Record> data_records;
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    File_data.seekg(0, ios::beg);
+    while (File_data.read((char*) &record, Record_size)) {
+        if (record.key == key){
+            cout<<"Record found in main data"<<endl;
+            flag = true;
+            continue;
+        }
+        data_records.push_back(record);
+    }
+
+    if (!flag) {
+        cout << "Record not found" << endl;
+        return;
+    }
+
+    File_data.close();
+
+    remove(filename_data.c_str());
+
+    ofstream file(filename_data, ios::app);
+    file.close();
+
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    for (Record record : data_records) {
         File_data.write((char*) &record, Record_size);
     }
-
     File_data.close();
-    return;
+
 }
+
 void SequentialFile::show_records(string name) {
     Record record;
 

@@ -7,8 +7,12 @@ int main(){
     // file.destroy();
     // auto vector_records = read_from_csv("data/data.csv");
     // for (auto record : vector_records){
-    //     record.print();
+    //     // record.print();
     //     file.insert(record);
     // }
+
+
+
+    file.remove_record(625);
     file.description();
 }
