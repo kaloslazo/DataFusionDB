@@ -2,36 +2,43 @@
 #include <fstream>
 #include <cmath>
 #include <functional>
+#include <sstream>
 
 using namespace std;
 
-SequentialFile::SequentialFile(string filename_data, int record_size){
+SequentialFile::SequentialFile(string filename_data, string aux_data, int record_size){
     this->filename_data = filename_data;
+    this->aux_data = aux_data;
     this->Record_size = record_size;
+
+    //Create the files if they don't exist
+    ofstream file(filename_data, ios::app);
+    file.close();
+
+    ofstream file2(aux_data, ios::app);
+    file2.close();
+
+    this->aux_max_size = 10;
 };
 
 SequentialFile::~SequentialFile(){
     File_data.close();
 };
 
-bool compare(Record a, Record b) {
-    return a.key < b.key;
-};
-
 int SequentialFile::get_num_records(string name){
     // open file for save data
     if (name == "data") {
         File_data.open(filename_data, ios::in | ios::out | ios::binary);
-    };
+    }
     if (name == "aux") {
         File_data.open(aux_data, ios::in | ios::out | ios::binary);
-    };
+    }
     
     // check if file is open
     if (!File_data.is_open()) {
         cout << "[!] Error opening file " << filename_data << endl;
         return -1;
-    };
+    }
 
     // get the number of records in the file
     File_data.seekg(0, ios::end);
@@ -56,7 +63,6 @@ void SequentialFile::insert_aux(Record record){
 };
 
 void SequentialFile::insert(Record record){
-
     if (get_num_records("aux") == this->aux_max_size)
         merge();
     
@@ -98,68 +104,49 @@ void SequentialFile::remove_record(int key) {
     File_data.close();
     return;
 }
-optional<Record> SequentialFile::search(int key){
+void SequentialFile::show_records(string name) {
+    Record record;
 
-    // Search in the data file
-    File_data.open(filename_data, ios::in | ios::out | ios::binary);
-    File_data.seekg(0, ios::beg);
-
-    Record aux;
-    while (File_data.read((char*) &aux, Record_size)) {
-        if (aux.key == key) {
-            File_data.close();
-            return aux;
-        }
+    if (name == "data") {
+        cout<< "Opening data file" << endl;
+        File_data.open(filename_data, ios::in | ios::out | ios::binary);
     }
+    else if (name == "aux") {
+        cout<< "Opening aux file" << endl;
+        File_data.open(aux_data, ios::in | ios::out | ios::binary);
+    };
 
-    // Search in the aux file
-    File_data.open(aux_data, ios::in | ios::out | ios::binary);
+    if (!File_data.is_open()) {
+        cout << "[!] Error opening file " << filename_data << endl;
+        return;
+    };
+
     File_data.seekg(0, ios::beg);
-
-    while (File_data.read((char*) &aux, Record_size)) {
-        if (aux.key == key) {
-            File_data.close();
-            return aux;
-        }
+    while (File_data.read((char*) &record, Record_size)) {
+        cout << record.key << " " << record.name << " " << record.age << " " << record.term << endl;
     }
 
     File_data.close();
-    return {};
+}
+void SequentialFile::destroy() {
+    remove(filename_data.c_str());
+    remove(aux_data.c_str());
+}
+void SequentialFile::description() {
+    cout<<"Number of records in data file: "<<get_num_records("data")<<endl;
+    cout<<"Number of records in aux file: "<<get_num_records("aux")<<endl;
+    cout<<"Total number of records: "<<total_records()<<endl;
+    
+    cout<<"Record in data file: "<<endl;
+    show_records("data");
+
+    cout<<"Record in aux file: "<<endl;
+    show_records("aux");
+
 };
 
-void SequentialFile::insert_sort(Record record){
-
-    File_data.open(filename_data, ios::in | ios::out | ios::binary);
-    File_data.seekg(0, ios::end);
-
-    //Read until you find a record with a key greater than the key of the record to be inserted
-    Record aux;
-    bool flag = false;
-    while (File_data.read((char*) &aux, Record_size)) {
-        if (aux.key > record.key) {
-            //Go back one record
-            File_data.seekg(-Record_size, ios::cur);
-
-            //Insert the record in the correct position
-            File_data.write((char*) &record, Record_size);
-            flag = true;
-        }
-    }
-
-    //If flag = false, insert the record at the end of the file
-    if (!flag) 
-        File_data.write((char*) &record, Record_size);
-    
-
-    //If flag = true, in Record aux is the record that was overwritten, so we are going to move every record one position to the right
-    if (flag) {
-        File_data.write((char*) &aux, Record_size);
-        while (File_data.read((char*) &aux, Record_size)) 
-            File_data.write((char*) &aux, Record_size);
-    }
-
-    File_data.flush();
-    File_data.close();
+auto compare = [](Record a, Record b) -> bool {
+    return a.key < b.key;
 };
 
 void SequentialFile::merge()
@@ -177,22 +164,59 @@ void SequentialFile::merge()
     }
     aux_records.push_back(aux);
 
+    //Read every record in the data file and save it in the same vector
+    File_data.close();
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    File_data.seekg(0, ios::beg);
+    while (File_data.read((char*) &aux, Record_size)) {
+        aux_records.push_back(aux);
+    }
+
     //Sort the vector
     sort(aux_records.begin(), aux_records.end(), compare);
 
-    //Insert every record in the data file sorted
+    //Write the sorted vector in the data file
+    File_data.close();
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    File_data.seekp(0, ios::beg);
     for (Record record : aux_records) {
-        insert_sort(record);
+        File_data.write((char*) &record, Record_size);
     }
 
-    File_data.close();
-
     //Delete the auxiliary file
+    File_data.close();
     remove(aux_data.c_str());
 
+    ofstream file2(aux_data, ios::app);
+    file2.close();
 
-    //Create a new auxiliary file
-    File_data.open(aux_data, ios::in | ios::out | ios::binary);
-    File_data.close();
+    return;
 };
 
+
+vector<Record> read_from_csv(string filename){
+    vector<Record> records;
+    ifstream file(filename);
+    string line;
+    bool header = true;
+    while (getline(file, line)) {
+        if (header) {
+            header = false;
+            continue;
+        }
+        auto line_stream = stringstream(line);
+        string key, name, age, term;
+        getline(line_stream, key, ',');
+        getline(line_stream, name, ',');
+        getline(line_stream, age, ',');
+        getline(line_stream, term, ',');
+
+        int key_int = stoi(key);
+        Record record(key_int, name.c_str(), stoi(age), stoi(term));
+
+        records.push_back(record);
+    
+    }
+
+    return records;
+};

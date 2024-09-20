@@ -1,4 +1,6 @@
-#include "Record.hpp"
+#pragma once
+
+#include "Record.cpp"
 #include <fstream>
 #include <optional>
 #include <string>
@@ -17,18 +19,17 @@ class SequentialFile {
     int Record_size;
     int aux_max_size;
 
-    bool compare(Record a, Record b);
-
     void merge();
-    void insert_sort(Record record);
     void insert_aux(Record record);
 
 public:
-    SequentialFile(string filename_data, int record_size);
+    SequentialFile(string filename_data, string aux_data, int record_size);
     ~SequentialFile();
     int get_num_records(string name);
-    int total_records();
+    int total_records();    
     void insert(Record record);
     void remove_record(int key);
-    optional<Record> search(int key);
+    void show_records(string name);
+    void destroy();
+    void description();
 };

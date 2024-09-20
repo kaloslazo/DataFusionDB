@@ -12,5 +12,8 @@ struct Record{
 
     Record();
     Record(int key, char name[12], int age, int term);
+    Record(int key, const char* name, int age, int term);
+
+    void print();
     ~Record();
 };
