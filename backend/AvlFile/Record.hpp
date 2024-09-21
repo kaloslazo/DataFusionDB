@@ -1,36 +1,40 @@
-#pragma once
+#ifndef RECORD_HPP
+#define RECORD_HPP
+
 #include <iostream>
-#include <cstring>
 
 using namespace std;
 
-typedef long pos_t;
-#define VOID -1
-#define USED -2
-
 struct Record {
-    // data
-    int codigo = 0;
-    char nombre[12] = "";
-    char apellido[12] = "";
-    int ciclo = 0;
-    // pointers
-    pos_t left = VOID;
-    pos_t right = VOID;
-    pos_t nextdel = USED;
+  char track[100];
+  char album_name[100];
+  char artist[50];
+  char release_date[10];
+  char isrc[12]; 
+  int all_time_rank;
+  int track_score;
+  int spotify_streams;
+  int spotify_popularity;
+  int youtube_views;
+  int tiktok_views;
+  int airplay_spins;
+  int siriusmxm_spins;
+  int pandora_streams;
+  int soundcloud_streams;
+  int shazam_counts;
+  int explicit_tracks;
+  int left;
+  int right;
+  int nextdel;
 
-    void showData() {
-        cout << "\nCodigo   : " << codigo;
-        cout << "\nNombre   : " << nombre;
-        cout << "\nApellido : " << apellido;
-        cout << "\nCiclo    : " << ciclo;
-        cout << "\n";
-    }
+  Record();
+  Record(char track[100], char album_name[100], char artist[50], char release_date[10], char isrc[12], int all_time_rank, int track_score, int spotify_streams, int spotify_popularity, int youtube_views, int tiktok_views, int airplay_spins, int siriusmxm_spins, int pandora_streams, int soundcloud_streams, int shazam_counts, int explicit_tracks);
+  ~Record();
 
-    bool operator==(const Record& other) const {
-        return codigo == other.codigo && strcmp(nombre, other.nombre) == 0 &&
-               strcmp(apellido, other.apellido) == 0 && ciclo == other.ciclo;
-    }
+  void Print();
 
-    int key() { return codigo; }
+  string key();
 };
+
+#endif // RECORD_HPP
+
