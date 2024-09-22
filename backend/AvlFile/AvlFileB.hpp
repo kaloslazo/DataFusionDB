@@ -1,8 +1,8 @@
 #include <cstring>
-#include <vector>
 #include <fstream>
 #include <iostream>
-#include "Record.hpp"
+#include <vector>
+#include "RecordB.hpp"
 
 using namespace std;
 
@@ -14,22 +14,22 @@ struct Header {
 template <typename TK>
 class AVLFile {
    private:
-    string filename;
+    string filename = "data/avlb.dat";
     Header header;
     bool debug = false;
 
    public:
-    AVLFile(string filename) : filename(filename) {
+    AVLFile() {
         fstream file(filename, ios::binary | ios::in | ios::out);
         check_file_open(file);
         if (is_file_empty(file)) {
             file.close();
-            cout << "Inicializando archivo vacio...\n";
+            // cout << "Inicializando archivo vacio...\n";
             header = Header();
             update_header();
         } else {
-            cout << "Leyendo archivo...\n";
-            check_file_valid(file);
+            // cout << "Leyendo archivo...\n";
+            // check_file_valid(file);
             file.seekg(0, ios::beg);
             file.read((char*)&header, sizeof(Header));
             file.close();
@@ -109,7 +109,6 @@ class AVLFile {
     }
 
    private:
-
     // read and write in disk
     Record readRecord(int pos) {
         if (pos == -1) {
@@ -398,11 +397,9 @@ class AVLFile {
     }
 
     /*
-    * file functions
-    */
-    int into_pos(int pos) {
-        return (pos * sizeof(Record)) + sizeof(Header);
-    }
+     * file functions
+     */
+    int into_pos(int pos) { return (pos * sizeof(Record)) + sizeof(Header); }
     int into_node_ptr(int pos) {
         return (pos - sizeof(Header)) / sizeof(Record);
     }
@@ -439,5 +436,3 @@ class AVLFile {
         return file.peek() == ifstream::traits_type::eof();
     }
 };
-
-
