@@ -1,10 +1,10 @@
 #include <algorithm>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <sstream>
-#include <ctime>
-#include "AvlFileA.hpp"
+// #include "AvlFileA.hpp"
 #include "AvlFileB.hpp"
 
 using namespace std;
@@ -15,9 +15,9 @@ bool debug = false;
 //              TEST FUNCTION
 // ========================================
 
-vector<RecordB> leerCSV(const string& filename) {
+vector<AvlRecordB> leerCSV(const string& filename) {
     ifstream file(filename);
-    vector<RecordB> records;
+    vector<AvlRecordB> records;
     string line;
 
     if (!file.is_open()) {
@@ -31,7 +31,7 @@ vector<RecordB> leerCSV(const string& filename) {
     while (getline(file, line)) {
         stringstream ss(line);
         string token;
-        RecordB record;
+        AvlRecordB record;
 
         getline(ss, token, ',');
         record.year = stoi(token);
@@ -61,7 +61,7 @@ void readFile() {
     if (debug)
         file.debugAVL();
     cout << "------------------------------------------\n";
-    vector<RecordB> records = leerCSV("../../data/car_prices_extended.csv");
+    vector<AvlRecordB> records = leerCSV("../../data/car_prices_extended.csv");
     cout << "Cantidad de records: " << records.size() << "\n";
 
     cout << "Starting insertion...\n";
@@ -109,7 +109,7 @@ void readFile() {
     cout << "------------------------------------------\n";
     bool passed = true;
     for (auto& record : records) {
-        RecordB r = file.find(record.key());
+        AvlRecordB r = file.find(record.key());
         if (!(r.key() == record.key())) {
             passed = false;
             cout << "Error en el record con codigo: " << record.key() << "\n";
@@ -118,7 +118,7 @@ void readFile() {
             cout << "\nSe obtuvo: \n";
             r.Print();
             cout << "\n";
-            
+
             cout << "Found: " << found << "\n";
             break;
         } else {
@@ -129,12 +129,26 @@ void readFile() {
         cout << "Todos los records fueron leidos correctamente\n";
     cout << "Test concluido\n";
 
+
+    // test range search
+    string begin_vin = "1f";
+    string end_vin = "1g";
+    cout << "Range search from " << begin_vin << " to " << end_vin << "\n";
+    vector<AvlRecordB> range = file.range_search(begin_vin, end_vin);
+    sort(range.begin(), range.end(), [](AvlRecordB& a, AvlRecordB& b) {
+        return a.key() < b.key();
+    });
+    cout << "Records found: " << range.size() << "\n";
+    cout << "First record: " << range[0].key() << "\n";
+    cout << "Last record: " << range[range.size() - 1].key() << "\n";
+
     // search 1 record
     file.n_access = 0;
     start = clock();
-    RecordB r = file.find(records[0].key());
+    AvlRecordB r = file.find(records[0].key());
     end = clock();
-    cout << "Time for search: " << (double)(end - start) / CLOCKS_PER_SEC << "\n";
+    cout << "Time for search: " << (double)(end - start) / CLOCKS_PER_SEC
+         << "\n";
     cout << "n_access: " << file.n_access << "\n";
 
     // delete 1 record
@@ -142,7 +156,8 @@ void readFile() {
     start = clock();
     file.remove(records[9855].key());
     end = clock();
-    cout << "Time for delete: " << (double)(end - start) / CLOCKS_PER_SEC << "\n";
+    cout << "Time for delete: " << (double)(end - start) / CLOCKS_PER_SEC
+         << "\n";
     cout << "n_access: " << file.n_access << "\n";
 
     // insert 1 record
@@ -150,7 +165,8 @@ void readFile() {
     start = clock();
     file.insert(records[9855]);
     end = clock();
-    cout << "Time for insert: " << (double)(end - start) / CLOCKS_PER_SEC << "\n";
+    cout << "Time for insert: " << (double)(end - start) / CLOCKS_PER_SEC
+         << "\n";
     cout << "n_access: " << file.n_access << "\n";
 }
 

@@ -42,6 +42,13 @@ class AVLFileA {
     // Find by key
     AvlRecordA find(TK key) { return find(key, header.root); }
 
+    // Range search
+    vector<AvlRecordA> range_search(TK begin_key, TK end_key) {
+        vector<AvlRecordA> records;
+        range_search(begin_key, end_key, header.root, records);
+        return records;
+    }
+
     // Insert
     void insert(AvlRecordA record, bool do_balance = true) {
         if (debug)
@@ -231,6 +238,20 @@ class AVLFileA {
             return find(key, node.left);
         else
             return find(key, node.right);
+    }
+    void range_search(TK begin_key, TK end_key, int node_pos,
+                      vector<AvlRecordA>& records) {
+        // inorder traversal
+        if (node_pos == -1)
+            return;
+
+        AvlRecordA node = readRecord(node_pos);
+        if (node.key() > begin_key)
+            range_search(begin_key, end_key, node.left, records);
+        if (node.key() >= begin_key && node.key() <= end_key)
+            records.push_back(node);
+        if (node.key() < end_key)
+            range_search(begin_key, end_key, node.right, records);
     }
     void inorder(int node_pos, vector<AvlRecordA>& records) {
         if (node_pos == -1)
