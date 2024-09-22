@@ -10,40 +10,40 @@
 
 using namespace std;
 
-struct Header {
+struct HeaderB {
     int root = -1;
     int nextdel = -1;
 };
 
 template <typename TK>
-class AVLFile {
+class AVLFileB {
    public:
     long long int n_access = 0;
 
    private:
     string filename = "./data/avlb.dat";
-    Header header;
+    HeaderB header;
     bool debug = false;
 
    public:
-    AVLFile() {
+    AVLFileB() {
         ofstream file(filename, ios::out | ios::binary);
         file.seekp(0, ios::beg);
-        file.write((char*)&header, sizeof(Header));
+        file.write((char*)&header, sizeof(HeaderB));
     }
-    AVLFile(string csvfile) {
+    AVLFileB(string csvfile) {
         ofstream file(filename, ios::out | ios::binary);
         file.seekp(0, ios::beg);
-        file.write((char*)&header, sizeof(Header));
+        file.write((char*)&header, sizeof(HeaderB));
         file.close();
         loadCSV(csvfile);
     }
 
     // Find by key
-    Record find(TK key) { return find(key, header.root); }
+    RecordB find(TK key) { return find(key, header.root); }
 
     // Insert
-    void insert(Record record, bool do_balance = true) {
+    void insert(RecordB record, bool do_balance = true) {
         if (debug)
             cout << "Inserting record with key: " << record.key() << "\n";
         int new_root = insert(record, header.root, do_balance);
@@ -54,8 +54,8 @@ class AVLFile {
     }
 
     // Inorder traversal
-    vector<Record> inorder() {
-        vector<Record> records;
+    vector<RecordB> inorder() {
+        vector<RecordB> records;
         inorder(header.root, records);
         return records;
     }
@@ -78,7 +78,7 @@ class AVLFile {
     void loadCSV(const string& filename) {
         ifstream file(filename);
         string line;
-        vector<Record> records;
+        vector<RecordB> records;
 
         if (!file.is_open()) {
             cerr << "No se pudo abrir el archivo.\n";
@@ -91,7 +91,7 @@ class AVLFile {
         while (getline(file, line)) {
             stringstream ss(line);
             string token;
-            Record record;
+            RecordB record;
 
             getline(ss, token, ',');
             record.year = stoi(token);
@@ -115,7 +115,7 @@ class AVLFile {
 
         // Sort the records based on the VIN field
         sort(records.begin(), records.end(),
-             [](const Record& a, const Record& b) {
+             [](const RecordB& a, const RecordB& b) {
                  return strcmp(a.vin, b.vin) < 0;
              });
 
@@ -133,23 +133,23 @@ class AVLFile {
         cout << "Root Pos in ram: " << header.root << "\n";
         cout << "Nextdel Pos in ram: " << header.nextdel << "\n";
 
-        Header file_header;
+        HeaderB file_header;
         file.seekg(0, ios::beg);
-        file.read((char*)&file_header, sizeof(Header));
+        file.read((char*)&file_header, sizeof(HeaderB));
         cout << "Root Pos in file: " << file_header.root << "\n";
         cout << "Nextdel Pos in file: " << file_header.nextdel << "\n";
 
         if (header.root != -1) {
             cout << "Root in file:\n";
-            Record record = readRecord(header.root);
+            RecordB record = readRecordB(header.root);
             record.Print();
             cout << "left: " << record.left << "\n";
             cout << "right: " << record.right << "\n";
             cout << "nextdel: " << record.nextdel << "\n";
         }
 
-        vector<Record> records = inorder();
-        cout << "\nRecord count: " << records.size() << "\n";
+        vector<RecordB> records = inorder();
+        cout << "\nRecordB count: " << records.size() << "\n";
         // cout << "\nInorder traversal:\n";
         // for (auto& record : records) {
         //     record.showData();
@@ -165,7 +165,7 @@ class AVLFile {
 
    private:
     // create index helper functions
-    void bulkInsert(vector<Record>& records, int start, int end) {
+    void bulkInsert(vector<RecordB>& records, int start, int end) {
         if (start > end)
             return;
 
@@ -181,13 +181,13 @@ class AVLFile {
         if (node_pos == -1)
             return;
 
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         recursiveBalance(node.left);
         recursiveBalance(node.right);
     }
 
     // read and write in disk
-    Record readRecord(int pos) {
+    RecordB readRecordB(int pos) {
         n_access++;
         if (pos == -1) {
             cerr << "Error! Se intento leer un registro con posicion -1.\n";
@@ -197,7 +197,7 @@ class AVLFile {
                     "negativa.\n";
             exit(1);
         }
-        Record record;
+        RecordB record;
         ifstream file(filename, ios::binary);
         /*check_file_open(file);*/
         file.seekg(into_pos(pos), ios::beg);
@@ -205,10 +205,10 @@ class AVLFile {
             cerr << "Error! Se intento leer un registro fuera de rango.\n";
             exit(1);
         }
-        file.read((char*)&record, sizeof(Record));
+        file.read((char*)&record, sizeof(RecordB));
         return record;
     }
-    void writeRecord(Record& record, int pos) {
+    void writeRecordB(RecordB& record, int pos) {
         n_access++;
         if (debug)
             cout << "Writing in pos: " << pos << ", record: " << record.key()
@@ -216,15 +216,15 @@ class AVLFile {
         ofstream file(filename, ios::binary | ios::in);
         /*check_file_open(file);*/
         file.seekp(into_pos(pos), ios::beg);
-        file.write((char*)&record, sizeof(Record));
+        file.write((char*)&record, sizeof(RecordB));
     }
 
     // recursive functions
-    Record find(TK key, int node_pos) {
+    RecordB find(TK key, int node_pos) {
         if (node_pos == -1)
-            return Record();
+            return RecordB();
 
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         if (key == node.key())
             return node;
         else if (key < node.key())
@@ -232,22 +232,22 @@ class AVLFile {
         else
             return find(key, node.right);
     }
-    void inorder(int node_pos, vector<Record>& records) {
+    void inorder(int node_pos, vector<RecordB>& records) {
         if (node_pos == -1)
             return;
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         inorder(node.left, records);
         records.push_back(node);
         inorder(node.right, records);
     }
-    pair<int, Record> findMin(int node_pos) {
+    pair<int, RecordB> findMin(int node_pos) {
         if (node_pos == -1)
-            return make_pair(-1, Record());
+            return make_pair(-1, RecordB());
 
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         while (node.left != -1) {
             node_pos = node.left;
-            node = readRecord(node_pos);
+            node = readRecordB(node_pos);
         }
         return make_pair(node_pos, node);
     }
@@ -258,7 +258,7 @@ class AVLFile {
             // if (debug)
             // cout << "Checking height of node with pos: " << node_pos
             // << "\n";
-            Record node = readRecord(node_pos);
+            RecordB node = readRecordB(node_pos);
             h = 1 + max(height(node.left), height(node.right));
         }
         return h;
@@ -270,46 +270,46 @@ class AVLFile {
             return 0;
         // if (debug)
         // cout << "Checking diff of node with pos: " << node_pos << "\n";
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         return height(node.left) - height(node.right);
     }
     int rr_rotation(int parent_pos) {
         // move parent to left of right child
-        Record parent = readRecord(parent_pos);
+        RecordB parent = readRecordB(parent_pos);
         int right_child_pos = parent.right;
-        Record right_child = readRecord(right_child_pos);
+        RecordB right_child = readRecordB(right_child_pos);
         parent.right = right_child.left;
         right_child.left = parent_pos;
         // update pointers
-        writeRecord(parent, parent_pos);
-        writeRecord(right_child, right_child_pos);
+        writeRecordB(parent, parent_pos);
+        writeRecordB(right_child, right_child_pos);
         return right_child_pos;
     }
     int ll_rotation(int parent_pos) {
         // move parent to right of left child
-        Record parent = readRecord(parent_pos);
+        RecordB parent = readRecordB(parent_pos);
         int left_child_pos = parent.left;
-        Record left_child = readRecord(left_child_pos);
+        RecordB left_child = readRecordB(left_child_pos);
         parent.left = left_child.right;
         left_child.right = parent_pos;
         // update pointers
-        writeRecord(parent, parent_pos);
-        writeRecord(left_child, left_child_pos);
+        writeRecordB(parent, parent_pos);
+        writeRecordB(left_child, left_child_pos);
         return left_child_pos;
     }
     int lr_rotation(int parent_pos) {
-        Record parent = readRecord(parent_pos);
+        RecordB parent = readRecordB(parent_pos);
         int left_child_pos = parent.left;
         parent.left = rr_rotation(left_child_pos);
-        writeRecord(parent, parent_pos);
+        writeRecordB(parent, parent_pos);
 
         return ll_rotation(parent_pos);
     }
     int rl_rotation(int parent_pos) {
-        Record parent = readRecord(parent_pos);
+        RecordB parent = readRecordB(parent_pos);
         int right_child_pos = parent.right;
         parent.right = ll_rotation(right_child_pos);
-        writeRecord(parent, parent_pos);
+        writeRecordB(parent, parent_pos);
 
         return rr_rotation(parent_pos);
     }
@@ -319,7 +319,7 @@ class AVLFile {
             if (debug)
                 cout << "Left inbalance in node with pos: " << node_pos << "\n";
 
-            if (diff(readRecord(node_pos).left) > 0) {
+            if (diff(readRecordB(node_pos).left) > 0) {
                 if (debug)
                     cout << "LL rotation\n";
                 node_pos = ll_rotation(node_pos);
@@ -333,7 +333,7 @@ class AVLFile {
                 cout << "Right inbalance in node with pos: " << node_pos
                      << "\n";
             }
-            if (diff(readRecord(node_pos).right) > 0) {
+            if (diff(readRecordB(node_pos).right) > 0) {
                 if (debug)
                     cout << "RL rotation\n";
                 node_pos = rl_rotation(node_pos);
@@ -347,9 +347,9 @@ class AVLFile {
     }
 
     // recursive insert
-    int insert(Record& record, int node_pos, bool do_balance = true) {
+    int insert(RecordB& record, int node_pos, bool do_balance = true) {
         if (node_pos == -1) {
-            Record new_record = record;
+            RecordB new_record = record;
             new_record.left = new_record.right = -1;
             ofstream file(filename, ios::binary | ios::in);
             /*check_file_open(file);*/
@@ -361,30 +361,30 @@ class AVLFile {
             } else {
                 // LIFO freelist
                 new_pos = header.nextdel;
-                Record free_record = readRecord(new_pos);
+                RecordB free_record = readRecordB(new_pos);
                 header.nextdel = free_record.nextdel;
                 update_header();
                 file.seekp(into_pos(new_pos), ios::beg);
             }
-            file.write((char*)&new_record, sizeof(Record));
+            file.write((char*)&new_record, sizeof(RecordB));
             if (debug) {
                 cout << "Inserted record with key: " << record.key()
                      << " in pos: " << new_pos << "\n";
             }
             return new_pos;
         }
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         if (record.key() < node.key()) {
             int newleft = insert(record, node.left, do_balance);
             if (node.left != newleft) {
                 node.left = newleft;
-                writeRecord(node, node_pos);
+                writeRecordB(node, node_pos);
             }
         } else if (record.key() > node.key()) {
             int newright = insert(record, node.right, do_balance);
             if (node.right != newright) {
                 node.right = newright;
-                writeRecord(node, node_pos);
+                writeRecordB(node, node_pos);
             }
         } else {
             // cerr << "Warning! Trying to insert duplicate key: " << node.key()
@@ -402,20 +402,20 @@ class AVLFile {
         if (node_pos == -1)
             return make_pair(false, -1);
 
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         if (key < node.key()) {
             auto leftret = remove(key, node.left);
             found = leftret.first;
             if (found && leftret.second != node.left) {
                 node.left = leftret.second;
-                writeRecord(node, node_pos);
+                writeRecordB(node, node_pos);
             }
         } else if (key > node.key()) {
             auto rightret = remove(key, node.right);
             found = rightret.first;
             if (found && rightret.second != node.right) {
                 node.right = rightret.second;
-                writeRecord(node, node_pos);
+                writeRecordB(node, node_pos);
             }
         } else {
             if (debug)
@@ -427,7 +427,7 @@ class AVLFile {
                     cout << "Removing record with 2 children\n";
                 auto successor = findMin(node.right);  // get pos also !!
                 int successor_pos = successor.first;
-                Record new_record = successor.second;
+                RecordB new_record = successor.second;
 
                 // successor will never have left child
                 new_record.left = node.left;
@@ -435,7 +435,7 @@ class AVLFile {
                 // delete successor and update node->right
                 new_record.right = remove(new_record.key(), node.right).second;
                 // update node data with successor data
-                writeRecord(new_record, node_pos);
+                writeRecordB(new_record, node_pos);
                 return make_pair(true, balance(node_pos));
             }
             // 0 or 1 children: replace with non--1 child, if any
@@ -449,7 +449,7 @@ class AVLFile {
                 header.nextdel = node_pos;
                 update_header();
                 // update node
-                writeRecord(node, node_pos);
+                writeRecordB(node, node_pos);
                 return make_pair(true, temp);
             }
         }
@@ -462,17 +462,17 @@ class AVLFile {
     void printAVL(int node_pos, int depth) {
         if (node_pos == -1)
             return;
-        Record node = readRecord(node_pos);
+        RecordB node = readRecordB(node_pos);
         printAVL(node.left, depth + 1);
         cout << "Node: " << node.key() << ", depth: " << depth << "\n";
         cout << "Left: ";
         if (node.left != -1)
-            cout << readRecord(node.left).key() << "\n";
+            cout << readRecordB(node.left).key() << "\n";
         else
             cout << "-1\n";
         cout << "Right: ";
         if (node.right != -1)
-            cout << readRecord(node.right).key() << "\n";
+            cout << readRecordB(node.right).key() << "\n";
         else
             cout << "Null\n";
         printAVL(node.right, depth + 1);
@@ -481,15 +481,15 @@ class AVLFile {
     /*
      * file functions
      */
-    int into_pos(int pos) { return (pos * sizeof(Record)) + sizeof(Header); }
+    int into_pos(int pos) { return (pos * sizeof(RecordB)) + sizeof(HeaderB); }
     int into_node_ptr(int pos) {
-        return (pos - sizeof(Header)) / sizeof(Record);
+        return (pos - sizeof(HeaderB)) / sizeof(RecordB);
     }
     void update_header() {
         ofstream file(filename, ios::binary | ios::in);
         /*check_file_open(file);*/
         file.seekp(0, ios::beg);
-        file.write((char*)&header, sizeof(Header));
+        file.write((char*)&header, sizeof(HeaderB));
         file.close();
     }
 
@@ -506,7 +506,7 @@ class AVLFile {
     void check_file_valid(file_t& file) {
         file.seekg(0, ios::end);
         int filelen = file.tellg();
-        if (filelen % sizeof(Record) != sizeof(Header)) {
+        if (filelen % sizeof(RecordB) != sizeof(HeaderB)) {
             cerr << "Error! El archivo '" << filename
                  << "'no es un AVLFile valido.\n";
             exit(1);
