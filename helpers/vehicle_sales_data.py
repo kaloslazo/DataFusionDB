@@ -48,5 +48,8 @@ print(delimiter)
 print("Example rows:")
 print(df.sample(20))
 
+# Seleccionar una muestra aleatoria de 100,000 filas
+df_sample = df.sample(n=100000, random_state=42)
+
 # guardar el dataframe limpio
-df.to_csv("./data/car_prices_clean.csv", index=False)
+df_sample.to_csv("./data/car_prices_clean.csv", index=False)
