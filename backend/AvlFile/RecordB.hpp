@@ -23,7 +23,7 @@ struct Record {
     }
 
     string key() {
-        return string(vin, 17);
+        return string(vin, 18);
     }
 };
 
