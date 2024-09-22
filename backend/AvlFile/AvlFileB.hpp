@@ -1,3 +1,6 @@
+#ifndef AVLFILEB_HPP
+#define AVLFILEB_HPP
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -473,3 +476,5 @@ class AVLFile {
         return file.peek() == ifstream::traits_type::eof();
     }
 };
+
+#endif  // AVLFILEB_HPP
