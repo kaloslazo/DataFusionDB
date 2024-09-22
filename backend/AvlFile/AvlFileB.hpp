@@ -31,6 +31,13 @@ class AVLFile {
         file.seekp(0, ios::beg);
         file.write((char*)&header, sizeof(Header));
     }
+    AVLFile(string csvfile) {
+        ofstream file(filename, ios::out | ios::binary);
+        file.seekp(0, ios::beg);
+        file.write((char*)&header, sizeof(Header));
+        file.close();
+        loadCSV(csvfile);
+    }
 
     // Find by key
     Record find(TK key) { return find(key, header.root); }
@@ -68,23 +75,10 @@ class AVLFile {
     }
 
     // Load CSV
-    void bulkInsert(vector<Record>& records, int start, int end) {
-        if (start > end)
-            return;
-
-        // Insert middle element first to keep the tree balanced
-        int mid = (start + end) / 2;
-        insert(records[mid], false);
-
-        // Recursively insert the left and right halves
-        bulkInsert(records, start, mid - 1);
-        bulkInsert(records, mid + 1, end);
-    }
-
     void loadCSV(const string& filename) {
         ifstream file(filename);
         string line;
-        vector<Record> records;  // Vector to store records
+        vector<Record> records;
 
         if (!file.is_open()) {
             cerr << "No se pudo abrir el archivo.\n";
@@ -114,7 +108,7 @@ class AVLFile {
             strncpy(record.vin, token.c_str(), sizeof(record.vin));
             record.vin[sizeof(record.vin) - 1] = '\0';
 
-            records.push_back(record);  // Add the record to the vector
+            records.push_back(record);
         }
 
         file.close();
@@ -130,15 +124,6 @@ class AVLFile {
 
         // Balance the AVL tree
         recursiveBalance(header.root);
-    }
-
-    void recursiveBalance(int node_pos) {
-        if (node_pos == -1)
-            return;
-
-        Record node = readRecord(node_pos);
-        recursiveBalance(node.left);
-        recursiveBalance(node.right);
     }
 
     void debugAVL() {
@@ -179,6 +164,28 @@ class AVLFile {
     }
 
    private:
+    // create index helper functions
+    void bulkInsert(vector<Record>& records, int start, int end) {
+        if (start > end)
+            return;
+
+        // Insert middle element first to keep the tree balanced
+        int mid = (start + end) / 2;
+        insert(records[mid], false);
+
+        // Recursively insert the left and right halves
+        bulkInsert(records, start, mid - 1);
+        bulkInsert(records, mid + 1, end);
+    }
+    void recursiveBalance(int node_pos) {
+        if (node_pos == -1)
+            return;
+
+        Record node = readRecord(node_pos);
+        recursiveBalance(node.left);
+        recursiveBalance(node.right);
+    }
+
     // read and write in disk
     Record readRecord(int pos) {
         n_access++;
@@ -380,8 +387,8 @@ class AVLFile {
                 writeRecord(node, node_pos);
             }
         } else {
-            cerr << "Warning! Trying to insert duplicate key: " << node.key()
-                 << "\n";
+            // cerr << "Warning! Trying to insert duplicate key: " << node.key()
+            //      << "\n";
             return node_pos;
         }
         if (do_balance)
