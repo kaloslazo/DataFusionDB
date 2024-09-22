@@ -5,7 +5,7 @@
 
 using namespace std;
 
-struct RecordB {
+struct AvlRecordB {
     int year;
     char make[30];
     char model[50];
