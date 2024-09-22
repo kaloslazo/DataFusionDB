@@ -5,13 +5,10 @@
 
 using namespace std;
 
-struct RecordA {
+struct AvlRecordA {
     int left = -1;
     int right = -1;
     int nextdel = -1;
-
-    RecordA() {}
-    ~RecordA() {}
 
     void Print() {}
 
