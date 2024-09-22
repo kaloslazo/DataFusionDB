@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <sstream>
 #include "RecordB.hpp"
 
 using namespace std;
@@ -22,17 +23,14 @@ class AVLFile {
     AVLFile() {
         fstream file(filename, ios::binary | ios::in | ios::out);
         check_file_open(file);
+
+        // if file is empty, write header
+        // else wipe file and write header
         if (is_file_empty(file)) {
-            file.close();
-            // cout << "Inicializando archivo vacio...\n";
-            header = Header();
-            update_header();
+            file.write((char*)&header, sizeof(Header));
         } else {
-            // cout << "Leyendo archivo...\n";
-            // check_file_valid(file);
-            file.seekg(0, ios::beg);
-            file.read((char*)&header, sizeof(Header));
-            file.close();
+            file.seekp(0, ios::beg);
+            file.write((char*)&header, sizeof(Header));
         }
     }
 
@@ -69,6 +67,45 @@ class AVLFile {
             }
         }
         return ret.first;
+    }
+
+    // Load CSV
+    void loadCSV(const string& filename) {
+        ifstream file(filename);
+        string line;
+
+        if (!file.is_open()) {
+            cerr << "No se pudo abrir el archivo.\n";
+            return;
+        }
+
+        // skip header line
+        getline(file, line);
+
+        while (getline(file, line)) {
+            stringstream ss(line);
+            string token;
+            Record record;
+
+            getline(ss, token, ',');
+            record.year = stoi(token);
+
+            getline(ss, token, ',');
+            strncpy(record.make, token.c_str(), sizeof(record.make));
+            record.make[sizeof(record.make) - 1] = '\0';
+
+            getline(ss, token, ',');
+            strncpy(record.model, token.c_str(), sizeof(record.model));
+            record.model[sizeof(record.model) - 1] = '\0';
+
+            getline(ss, token, ',');
+            strncpy(record.vin, token.c_str(), sizeof(record.model));
+            record.vin[sizeof(record.vin) - 1] = '\0';
+
+            insert(record);
+        }
+
+        file.close();
     }
 
     void debugAVL() {
