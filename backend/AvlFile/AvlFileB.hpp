@@ -4,8 +4,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <sstream>
+#include <vector>
 #include "RecordB.hpp"
 
 using namespace std;
@@ -17,34 +17,29 @@ struct Header {
 
 template <typename TK>
 class AVLFile {
+   public:
+    long long int n_access = 0;
+
    private:
-    string filename = "data/avlb.dat";
+    string filename = "./data/avlb.dat";
     Header header;
     bool debug = false;
 
    public:
     AVLFile() {
-        fstream file(filename, ios::binary | ios::in | ios::out);
-        check_file_open(file);
-
-        // if file is empty, write header
-        // else wipe file and write header
-        if (is_file_empty(file)) {
-            file.write((char*)&header, sizeof(Header));
-        } else {
-            file.seekp(0, ios::beg);
-            file.write((char*)&header, sizeof(Header));
-        }
+        ofstream file(filename, ios::out | ios::binary);
+        file.seekp(0, ios::beg);
+        file.write((char*)&header, sizeof(Header));
     }
 
     // Find by key
     Record find(TK key) { return find(key, header.root); }
 
     // Insert
-    void insert(Record record) {
+    void insert(Record record, bool do_balance = true) {
         if (debug)
             cout << "Inserting record with key: " << record.key() << "\n";
-        int new_root = insert(record, header.root);
+        int new_root = insert(record, header.root, do_balance);
         if (new_root != header.root) {
             header.root = new_root;
             update_header();
@@ -73,9 +68,23 @@ class AVLFile {
     }
 
     // Load CSV
+    void bulkInsert(vector<Record>& records, int start, int end) {
+        if (start > end)
+            return;
+
+        // Insert middle element first to keep the tree balanced
+        int mid = (start + end) / 2;
+        insert(records[mid], false);
+
+        // Recursively insert the left and right halves
+        bulkInsert(records, start, mid - 1);
+        bulkInsert(records, mid + 1, end);
+    }
+
     void loadCSV(const string& filename) {
         ifstream file(filename);
         string line;
+        vector<Record> records;  // Vector to store records
 
         if (!file.is_open()) {
             cerr << "No se pudo abrir el archivo.\n";
@@ -102,13 +111,34 @@ class AVLFile {
             record.model[sizeof(record.model) - 1] = '\0';
 
             getline(ss, token, ',');
-            strncpy(record.vin, token.c_str(), sizeof(record.model));
+            strncpy(record.vin, token.c_str(), sizeof(record.vin));
             record.vin[sizeof(record.vin) - 1] = '\0';
 
-            insert(record);
+            records.push_back(record);  // Add the record to the vector
         }
 
         file.close();
+
+        // Sort the records based on the VIN field
+        sort(records.begin(), records.end(),
+             [](const Record& a, const Record& b) {
+                 return strcmp(a.vin, b.vin) < 0;
+             });
+
+        // Bulk insert the sorted records into the AVL tree
+        bulkInsert(records, 0, records.size() - 1);
+
+        // Balance the AVL tree
+        recursiveBalance(header.root);
+    }
+
+    void recursiveBalance(int node_pos) {
+        if (node_pos == -1)
+            return;
+
+        Record node = readRecord(node_pos);
+        recursiveBalance(node.left);
+        recursiveBalance(node.right);
     }
 
     void debugAVL() {
@@ -151,6 +181,7 @@ class AVLFile {
    private:
     // read and write in disk
     Record readRecord(int pos) {
+        n_access++;
         if (pos == -1) {
             cerr << "Error! Se intento leer un registro con posicion -1.\n";
             exit(1);
@@ -161,7 +192,7 @@ class AVLFile {
         }
         Record record;
         ifstream file(filename, ios::binary);
-        check_file_open(file);
+        /*check_file_open(file);*/
         file.seekg(into_pos(pos), ios::beg);
         if (file.eof()) {
             cerr << "Error! Se intento leer un registro fuera de rango.\n";
@@ -171,11 +202,12 @@ class AVLFile {
         return record;
     }
     void writeRecord(Record& record, int pos) {
+        n_access++;
         if (debug)
             cout << "Writing in pos: " << pos << ", record: " << record.key()
                  << "\n";
         ofstream file(filename, ios::binary | ios::in);
-        check_file_open(file);
+        /*check_file_open(file);*/
         file.seekp(into_pos(pos), ios::beg);
         file.write((char*)&record, sizeof(Record));
     }
@@ -308,12 +340,12 @@ class AVLFile {
     }
 
     // recursive insert
-    int insert(Record& record, int node_pos) {
+    int insert(Record& record, int node_pos, bool do_balance = true) {
         if (node_pos == -1) {
             Record new_record = record;
             new_record.left = new_record.right = -1;
             ofstream file(filename, ios::binary | ios::in);
-            check_file_open(file);
+            /*check_file_open(file);*/
             // use nextdel if available
             int new_pos;
             if (header.nextdel == -1) {
@@ -336,13 +368,13 @@ class AVLFile {
         }
         Record node = readRecord(node_pos);
         if (record.key() < node.key()) {
-            int newleft = insert(record, node.left);
+            int newleft = insert(record, node.left, do_balance);
             if (node.left != newleft) {
                 node.left = newleft;
                 writeRecord(node, node_pos);
             }
         } else if (record.key() > node.key()) {
-            int newright = insert(record, node.right);
+            int newright = insert(record, node.right, do_balance);
             if (node.right != newright) {
                 node.right = newright;
                 writeRecord(node, node_pos);
@@ -352,7 +384,10 @@ class AVLFile {
                  << "\n";
             return node_pos;
         }
-        return balance(node_pos);
+        if (do_balance)
+            return balance(node_pos);
+        else
+            return node_pos;
     }
     // recursive remove
     pair<bool, int> remove(TK key, int node_pos) {
@@ -445,7 +480,7 @@ class AVLFile {
     }
     void update_header() {
         ofstream file(filename, ios::binary | ios::in);
-        check_file_open(file);
+        /*check_file_open(file);*/
         file.seekp(0, ios::beg);
         file.write((char*)&header, sizeof(Header));
         file.close();
