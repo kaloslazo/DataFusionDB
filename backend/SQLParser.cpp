@@ -9,7 +9,7 @@ using namespace std;
 
 
 // START EXAMPLE ONLY - MUST REPLACE WITH REAL FUNCTIONS FOR DESIRED STRUCTURE
-Record search_id(string id, vector<Record> records) {
+/*Record search_id(string id, vector<Record> records) {
   Record result;
 
   for (Record record : records) {
@@ -26,7 +26,7 @@ vector<Record> search_range(string id1, string id2, vector<Record> records) {
   };
 
   return result;
-};
+};*/
 // END EXAMPLE ONLY - MUST REPLACE WITH REAL FUNCTIONS FOR DESIRED STRUCTURE
 
 
@@ -93,6 +93,7 @@ vector<Record> SQLParser::select_query(const string &query) {
       regex equal_regex(R"(id\s*=\s*(\d+))", regex::icase);
       regex between_regex(R"(id\s+between\s+(\d+)\s+and\s+(\d+))", regex::icase);
 
+      
       // search the records that match the condition
       if(regex_match(condition_where, match_condition, equal_regex)) result.push_back(search_id(match_condition[1], records));
       else if(regex_match(condition_where, match_condition, between_regex)) result = search_range(match_condition[1], match_condition[2], records);
@@ -116,12 +117,11 @@ void SQLParser::create_table(const string &query) {
     filename = match[2];
 
     // create the table with the desired structure
-    records.clear();
-    records.push_back(Record("Gatito Miau", "10"));
-    records.push_back(Record("Hannah Montana", "20"));
+
+    // TODO: agregar formato create table NAME from file "filename" using index indexname("attribute")
 
     table_created = true;
-    cout << "Table " << table_name << " created" << endl;
+    cout << "OK. Table created" << endl;
   } else {
     cerr << "Error. Query syntaxis is not correct for CREATE TABLE" << endl;
   };

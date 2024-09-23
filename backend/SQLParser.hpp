@@ -4,8 +4,19 @@
 #include "Record.hpp"
 #include <string>
 #include <vector>
+#include "AvlFile/AvlFileA.hpp"
+#include "AvlFile/AvlFileB.hpp"
 
 using namespace std;
+
+enum IndexType {
+    AVL_A,
+    AVL_B,
+    EXT_A,
+    EXT_B,
+    SEQ_A,
+    SEQ_B,
+};
 
 class SQLParser {
 private:
@@ -19,6 +30,9 @@ private:
   string filename;
   string table_name;
   bool table_created = false;
+
+  IndexType index_type;
+
 public:
   SQLParser();
   ~SQLParser();
