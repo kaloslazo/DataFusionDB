@@ -1,7 +1,7 @@
 #ifndef RECORD_HPP
 #define RECORD_HPP
 
-#include <string>
+#include <iostream>
 using namespace std;
 
 class Record {
@@ -9,6 +9,7 @@ class Record {
     bool empty = true;
     virtual ~Record() = default;
     virtual string key() = 0;
+    virtual void Print() = 0;
 };
 
 class RecordA : public Record {
@@ -22,6 +23,14 @@ class RecordA : public Record {
     string key() override {
         return id;
     }
+
+    void Print() override {
+        cout << "ID: " << id << endl;
+        cout << "Name: " << name << endl;
+        cout << "Album: " << album << endl;
+        cout << "Album ID: " << album_id << endl;
+        cout << "Artists: " << artists << endl;
+    }
 };
 
 class RecordB : public Record {
@@ -33,6 +42,13 @@ class RecordB : public Record {
 
     string key() override {
         return vin;
+    }
+
+    void Print() override {
+        cout << "Year: " << year << endl;
+        cout << "Make: " << make << endl;
+        cout << "Model: " << model << endl;
+        cout << "VIN: " << vin << endl;
     }
 };
 
