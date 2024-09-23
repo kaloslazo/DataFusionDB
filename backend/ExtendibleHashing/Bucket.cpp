@@ -35,6 +35,17 @@ int Bucket<RECORD, TK>::Insert(RECORD& record) {
 };
 
 template <class RECORD, class TK>
+RECORD* Bucket<RECORD, TK>::Search(TK key) {
+  // search for record in bucket (o(k^2))
+  for (int i = 0; i < Current_size; i++) {
+    if (Records[i].key() == key) {
+      return &Records[i];
+    };
+  };
+  return nullptr;
+};
+
+template <class RECORD, class TK>
 void Bucket<RECORD, TK>::Remove(TK key) {
   // search for record in bucket (o(k^2))
   for (int i = 0; i < Current_size; i++) {
