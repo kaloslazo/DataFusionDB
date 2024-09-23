@@ -43,17 +43,18 @@ class AVLFileB {
     AvlRecordB find(TK key) { return find(key, header.root); }
 
     // Range search
-    vector<AvlRecordB> range_search(TK begin_key, TK end_key) {
-        vector<AvlRecordB> records;
+    vector<RecordB> range_search(TK begin_key, TK end_key) {
+        vector<RecordB> records;
         range_search(begin_key, end_key, header.root, records);
         return records;
     }
 
     // Insert
-    void insert(AvlRecordB record, bool do_balance = true) {
+    void insert(RecordB record, bool do_balance = true) {
+        AvlRecordB avl_record(record);
         if (debug)
-            cout << "Inserting record with key: " << record.key() << "\n";
-        int new_root = insert(record, header.root, do_balance);
+            cout << "Inserting record with key: " << avl_record.key() << "\n";
+        int new_root = insert(avl_record, header.root, do_balance);
         if (new_root != header.root) {
             header.root = new_root;
             update_header();
@@ -111,7 +112,7 @@ class AVLFileB {
             strncpy(record.model, token.c_str(), sizeof(record.model));
             record.model[sizeof(record.model) - 1] = '\0';
 
-            getline(ss, token, ',');
+            getline(ss, token, '\n');
             strncpy(record.vin, token.c_str(), sizeof(record.vin));
             record.vin[sizeof(record.vin) - 1] = '\0';
 
@@ -240,7 +241,7 @@ class AVLFileB {
             return find(key, node.right);
     }
     void range_search(TK begin_key, TK end_key, int node_pos,
-                      vector<AvlRecordB>& records) {
+                      vector<RecordB>& records) {
         // inorder traversal
         if (node_pos == -1)
             return;
@@ -249,7 +250,7 @@ class AVLFileB {
         if (node.key() > begin_key)
             range_search(begin_key, end_key, node.left, records);
         if (node.key() >= begin_key && node.key() <= end_key)
-            records.push_back(node);
+            records.push_back(node.to_record());
         if (node.key() < end_key)
             range_search(begin_key, end_key, node.right, records);
     }

@@ -43,17 +43,18 @@ class AVLFileA {
     AvlRecordA find(TK key) { return find(key, header.root); }
 
     // Range search
-    vector<AvlRecordA> range_search(TK begin_key, TK end_key) {
-        vector<AvlRecordA> records;
+    vector<RecordA> range_search(TK begin_key, TK end_key) {
+        vector<RecordA> records;
         range_search(begin_key, end_key, header.root, records);
         return records;
     }
 
     // Insert
-    void insert(AvlRecordA record, bool do_balance = true) {
+    void insert(RecordA record, bool do_balance = true) {
+        AvlRecordA avl_record(record);
         if (debug)
-            cout << "Inserting record with key: " << record.key() << "\n";
-        int new_root = insert(record, header.root, do_balance);
+            cout << "Inserting record with key: " << avl_record.key() << "\n";
+        int new_root = insert(avl_record, header.root, do_balance);
         if (new_root != header.root) {
             header.root = new_root;
             update_header();
@@ -100,20 +101,25 @@ class AVLFileA {
             string token;
             AvlRecordA record;
 
-            getline(ss, token, ',');
-            record.year = stoi(token);
+            getline(ss, token, ','); 
+            strncpy(record.id, token.c_str(), sizeof(record.id));
+            record.id[sizeof(record.id) - 1] = '\0';
 
             getline(ss, token, ',');
-            strncpy(record.make, token.c_str(), sizeof(record.make));
-            record.make[sizeof(record.make) - 1] = '\0';
+            strncpy(record.name, token.c_str(), sizeof(record.name));
+            record.name[sizeof(record.name) - 1] = '\0';
 
             getline(ss, token, ',');
-            strncpy(record.model, token.c_str(), sizeof(record.model));
-            record.model[sizeof(record.model) - 1] = '\0';
+            strncpy(record.album, token.c_str(), sizeof(record.album));
+            record.album[sizeof(record.album) - 1] = '\0';
 
             getline(ss, token, ',');
-            strncpy(record.vin, token.c_str(), sizeof(record.vin));
-            record.vin[sizeof(record.vin) - 1] = '\0';
+            strncpy(record.album_id, token.c_str(), sizeof(record.album_id));
+            record.album_id[sizeof(record.album_id) - 1] = '\0';
+
+            getline(ss, token, '\n');
+            strncpy(record.artists, token.c_str(), sizeof(record.artists));
+            record.artists[sizeof(record.artists) - 1] = '\0';
 
             records.push_back(record);
         }
@@ -123,7 +129,7 @@ class AVLFileA {
         // Sort the records based on the VIN field
         sort(records.begin(), records.end(),
              [](const AvlRecordA& a, const AvlRecordA& b) {
-                 return strcmp(a.vin, b.vin) < 0;
+                 return strcmp(a.id, b.id) < 0;
              });
 
         // Bulk insert the sorted records into the AVL tree
@@ -227,20 +233,20 @@ class AVLFileA {
     }
 
     // recursive functions
-    AvlRecordA find(TK key, int node_pos) {
+    RecordA find(TK key, int node_pos) {
         if (node_pos == -1)
-            return AvlRecordA();
+            return RecordA();
 
         AvlRecordA node = readRecord(node_pos);
         if (key == node.key())
-            return node;
+            return node.to_record();
         else if (key < node.key())
             return find(key, node.left);
         else
             return find(key, node.right);
     }
     void range_search(TK begin_key, TK end_key, int node_pos,
-                      vector<AvlRecordA>& records) {
+                      vector<RecordA>& records) {
         // inorder traversal
         if (node_pos == -1)
             return;
@@ -249,7 +255,7 @@ class AVLFileA {
         if (node.key() > begin_key)
             range_search(begin_key, end_key, node.left, records);
         if (node.key() >= begin_key && node.key() <= end_key)
-            records.push_back(node);
+            records.push_back(node.to_record());
         if (node.key() < end_key)
             range_search(begin_key, end_key, node.right, records);
     }
