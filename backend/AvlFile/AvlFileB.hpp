@@ -40,7 +40,10 @@ class AVLFileB {
     }
 
     // Find by key
-    AvlRecordB find(TK key) { return find(key, header.root); }
+    RecordB find(TK key) { 
+        AvlRecordB record = find(key, header.root);
+        return record.to_record();
+    }
 
     // Range search
     vector<RecordB> range_search(TK begin_key, TK end_key) {
@@ -86,7 +89,7 @@ class AVLFileB {
     void loadCSV(const string& filename) {
         ifstream file(filename);
         string line;
-        vector<AvlRecordB> records;
+        vector<RecordB> records;
 
         if (!file.is_open()) {
             cerr << "No se pudo abrir el archivo.\n";
@@ -116,15 +119,15 @@ class AVLFileB {
             strncpy(record.vin, token.c_str(), sizeof(record.vin));
             record.vin[sizeof(record.vin) - 1] = '\0';
 
-            records.push_back(record);
+            records.push_back(record.to_record());
         }
 
         file.close();
 
         // Sort the records based on the VIN field
         sort(records.begin(), records.end(),
-             [](const AvlRecordB& a, const AvlRecordB& b) {
-                 return strcmp(a.vin, b.vin) < 0;
+             [](const RecordB& a, const RecordB& b) {
+                 return a.vin < b.vin;
              });
 
         // Bulk insert the sorted records into the AVL tree
@@ -173,7 +176,7 @@ class AVLFileB {
 
    private:
     // create index helper functions
-    void bulkInsert(vector<AvlRecordB>& records, int start, int end) {
+    void bulkInsert(vector<RecordB>& records, int start, int end) {
         if (start > end)
             return;
 

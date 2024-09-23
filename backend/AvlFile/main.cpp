@@ -4,7 +4,7 @@
 #include <iostream>
 #include <random>
 #include <sstream>
-// #include "AvlFileA.hpp"
+#include "AvlFileA.hpp"
 #include "AvlFileB.hpp"
 
 using namespace std;
@@ -15,9 +15,9 @@ bool debug = false;
 //              TEST FUNCTION
 // ========================================
 
-vector<AvlRecordB> leerCSV(const string& filename) {
+vector<RecordA> leerCSV(const string& filename) {
     ifstream file(filename);
-    vector<AvlRecordB> records;
+    vector<RecordA> records;
     string line;
 
     if (!file.is_open()) {
@@ -31,44 +31,66 @@ vector<AvlRecordB> leerCSV(const string& filename) {
     while (getline(file, line)) {
         stringstream ss(line);
         string token;
-        AvlRecordB record;
+        AvlRecordA record;
+
+        /*getline(ss, token, ',');*/
+        /*record.year = stoi(token);*/
+        /**/
+        /*getline(ss, token, ',');*/
+        /*strncpy(record.make, token.c_str(), sizeof(record.make));*/
+        /*record.make[sizeof(record.make) - 1] = '\0';*/
+        /**/
+        /*getline(ss, token, ',');*/
+        /*strncpy(record.model, token.c_str(), sizeof(record.model));*/
+        /*record.model[sizeof(record.model) - 1] = '\0';*/
+        /**/
+        /*getline(ss, token, '\n');*/
+        /*strncpy(record.vin, token.c_str(), sizeof(record.vin));*/
+        /*record.vin[sizeof(record.vin) - 1] = '\0';*/
 
         getline(ss, token, ',');
-        record.year = stoi(token);
+        strncpy(record.id, token.c_str(), sizeof(record.id));
+        record.id[sizeof(record.id) - 1] = '\0';
 
         getline(ss, token, ',');
-        strncpy(record.make, token.c_str(), sizeof(record.make));
-        record.make[sizeof(record.make) - 1] = '\0';
+        strncpy(record.name, token.c_str(), sizeof(record.name));
+        record.name[sizeof(record.name) - 1] = '\0';
 
         getline(ss, token, ',');
-        strncpy(record.model, token.c_str(), sizeof(record.model));
-        record.model[sizeof(record.model) - 1] = '\0';
+        strncpy(record.album, token.c_str(), sizeof(record.album));
+        record.album[sizeof(record.album) - 1] = '\0';
+
+        getline(ss, token, ',');
+        strncpy(record.album_id, token.c_str(), sizeof(record.album_id));
+        record.album_id[sizeof(record.album_id) - 1] = '\0';
 
         getline(ss, token, '\n');
-        strncpy(record.vin, token.c_str(), sizeof(record.vin));
-        record.vin[sizeof(record.vin) - 1] = '\0';
+        strncpy(record.artists, token.c_str(), sizeof(record.artists));
+        record.artists[sizeof(record.artists) - 1] = '\0';
 
-        records.push_back(record);
+        records.push_back(record.to_record());
     }
 
     file.close();
     return records;
 }
 
+string dataset = "../../data/spotify_data_clean.csv";
+
 void readFile() {
     int count = 0;
-    AVLFileB<string> file;
+    AVLFileA<string> file;
     if (debug)
         file.debugAVL();
     cout << "------------------------------------------\n";
-    vector<AvlRecordB> records = leerCSV("../../data/car_prices_extended.csv");
+    vector<RecordA> records = leerCSV(dataset);
     cout << "Cantidad de records: " << records.size() << "\n";
 
     cout << "Starting insertion...\n";
 
     // time
     clock_t start = clock();
-    file.loadCSV("../../data/car_prices_extended.csv");
+    file.loadCSV(dataset);
     clock_t end = clock();
     cout << "Time: " << (double)(end - start) / CLOCKS_PER_SEC << "\n";
 
@@ -109,7 +131,7 @@ void readFile() {
     cout << "------------------------------------------\n";
     bool passed = true;
     for (auto& record : records) {
-        AvlRecordB r = file.find(record.key());
+        RecordA r = file.find(record.key());
         if (!(r.key() == record.key())) {
             passed = false;
             cout << "Error en el record con codigo: " << record.key() << "\n";
@@ -129,15 +151,13 @@ void readFile() {
         cout << "Todos los records fueron leidos correctamente\n";
     cout << "Test concluido\n";
 
-
     // test range search
     string begin_vin = "1f";
     string end_vin = "1g";
     cout << "Range search from " << begin_vin << " to " << end_vin << "\n";
-    vector<AvlRecordB> range = file.range_search(begin_vin, end_vin);
-    sort(range.begin(), range.end(), [](AvlRecordB& a, AvlRecordB& b) {
-        return a.key() < b.key();
-    });
+    vector<RecordA> range = file.range_search(begin_vin, end_vin);
+    sort(range.begin(), range.end(),
+         [](RecordA& a, RecordA& b) { return a.key() < b.key(); });
     cout << "Records found: " << range.size() << "\n";
     cout << "First record: " << range[0].key() << "\n";
     cout << "Last record: " << range[range.size() - 1].key() << "\n";
@@ -145,7 +165,7 @@ void readFile() {
     // search 1 record
     file.n_access = 0;
     start = clock();
-    AvlRecordB r = file.find(records[0].key());
+    RecordA r = file.find(records[0].key());
     end = clock();
     cout << "Time for search: " << (double)(end - start) / CLOCKS_PER_SEC
          << "\n";
