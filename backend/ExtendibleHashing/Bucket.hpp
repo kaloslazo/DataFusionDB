@@ -1,8 +1,11 @@
 #ifndef BUCKET_HPP
 #define BUCKET_HPP
 
-#include "Record.hpp"
+#include "ExtendibleHRecordA.hpp"
+#include "ExtendibleHRecordB.hpp"
 
+template <class RECORD, class TK> class ExtendibleHashing;
+template <class RECORD, class TK>
 class Bucket {
 public:
   // initialize with max keys (records in bucket)
@@ -10,16 +13,16 @@ public:
   ~Bucket();
 
   // insert record into bucket
-  int Insert(Record& record);
+  int Insert(RECORD& record);
 
   // remove record from bucket
-  void Remove(char key[12]); // replace with typename <T>
+  void Remove(TK key);
 
   // search for record in bucket
-  Record* Search(char key[12]);
+  RECORD* Search(TK key);
 
   // redistribute records between two buckets
-  void Redistribute(Bucket& bucket);
+  void Redistribute(Bucket<RECORD, TK>& bucket);
   
   // print all records in bucket
   void Print();
@@ -35,10 +38,10 @@ protected:
   int Current_size;
 
   // array of records of type Record
-  Record* Records;
+  RECORD* Records;
 
   // allow class ExtendibleHashing to access protected members
-  friend class ExtendibleHashing;
+  friend class ExtendibleHashing<RECORD, TK>;
 };
 
 #endif // BUCKET_HPP

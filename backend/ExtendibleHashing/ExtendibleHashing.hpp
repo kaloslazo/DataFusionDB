@@ -1,7 +1,6 @@
 #ifndef EXTENDIBLE_HASHING_HPP
 #define EXTENDIBLE_HASHING_HPP
 
-#include "Record.hpp"
 #include "Bucket.hpp"
 #include <fstream>
 #include <optional>
@@ -10,6 +9,8 @@
 
 using namespace std;
 
+
+template <class RECORD, class TK>
 class ExtendibleHashing {
 public:
   // we need the global depth and the bucket size
@@ -26,13 +27,13 @@ public:
   void Close();
 
   // insert receives object record, we determine the key and adress inside
-  bool Insert(Record record);
+  bool Insert(RECORD record);
   
   // remove record using key from hashing index
-  bool Remove(char key[12]);
+  bool Remove(TK key);
 
   // search for record, returns the the record
-  optional<Record> Search(char key[12]);
+  optional<RECORD> Search(TK key);
 
   // print the directory and buckets
   void Print(); 
@@ -55,25 +56,25 @@ protected:
   int Bucket_size;
   
   // pointer to current bucket
-  Bucket* Current_bucket;
+  Bucket<RECORD, TK>* Current_bucket;
 
   // the number of cells (rows) in the directory equals 2^global_depth
   int Num_cells;
 
   // hash function converts key to hash value using binary approach
-  int Hash(char key[12]);
+  int Hash(TK key);
   
   // directory expansion for double the current size
   void Expand_directory();
   
   // split the bucket, handle the insertion of the overflow record
-  void Split_bucket(char key [12], int bucket_directory_address);
+  void Split_bucket(TK key, int bucket_directory_address);
 
   // takes bucket and save it in secondary memory
-  void Save_bucket(Bucket* bucket, int bucket_directory_address);
+  void Save_bucket(Bucket<RECORD, TK>* bucket, int bucket_directory_address);
 
   // load bucket from secondary memory
-  Bucket* Load_bucket(int bucket_directory_address);
+  Bucket<RECORD, TK>* Load_bucket(int bucket_directory_address);
 };
 
 #endif // EXTENDIBLE_HASHING_HPP
