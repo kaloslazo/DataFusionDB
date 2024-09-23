@@ -13,6 +13,14 @@ int main(){
 
 
 
-    file.remove_record(625);
-    file.description();
+    // file.remove_record(625);
+    // file.description();
+
+    // auto records = file.range_search(1200, 3000);
+    // for (auto record : records){
+    //     record.print();
+    // }
+
+    auto record = file.search(7230);
+    record.print();
 }

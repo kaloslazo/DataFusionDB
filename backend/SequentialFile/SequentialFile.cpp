@@ -224,6 +224,140 @@ void SequentialFile::merge()
     return;
 };
 
+vector<Record> SequentialFile::range_search(int begin_key, int end_key) {
+    vector<Record> records;
+    Record record;
+    
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    
+    if (!File_data) {
+        cerr << "Error opening file!" << endl;
+        return records;
+    }
+    
+    File_data.seekg(0, ios::beg);
+    
+    // first record >= begin_key using binary search
+    int left = 0, right, middle;
+    File_data.seekg(0, ios::end);
+    right = File_data.tellg() / sizeof(Record) - 1;
+    
+    int first_pos = -1;
+    
+    while (left <= right) {
+        middle = (left + right) / 2;
+        File_data.seekg(middle * sizeof(Record), ios::beg);
+        File_data.read(reinterpret_cast<char*>(&record), sizeof(Record));
+        
+        if (record.key >= begin_key) {
+            first_pos = middle; 
+            right = middle - 1;
+        } else {
+            left = middle + 1;
+        }
+    }
+    
+    if (first_pos == -1) first_pos = File_data.tellg() / sizeof(Record) - 1;
+
+
+    //last record <= end_key using binary search
+    left = first_pos;
+
+    File_data.seekg(0, ios::end);
+    right = File_data.tellg() / sizeof(Record) - 1;
+    
+    int last_pos = -1;
+    
+    while (left <= right) {
+        middle = left + (right - left) / 2;
+        File_data.seekg(middle * sizeof(Record), ios::beg);
+        File_data.read(reinterpret_cast<char*>(&record), sizeof(Record));
+        
+        if (record.key <= end_key) {
+            last_pos = middle;
+            left = middle + 1;
+        } else {
+            right = middle - 1;
+        }
+    }
+    
+    //all records between first_pos and last_pos inclusive
+    if (last_pos != -1) {
+        for (int i = first_pos; i <= last_pos; ++i) {
+            File_data.seekg(i * sizeof(Record), ios::beg);
+            File_data.read(reinterpret_cast<char*>(&record), sizeof(Record));
+            records.push_back(record);
+        }
+    }
+    
+    File_data.close();
+    
+    File_data.open(aux_data, ios::in | ios::out | ios::binary);
+
+    File_data.seekg(0, ios::beg);
+
+    while (File_data.read((char*) &record, Record_size)) {
+        if (record.key >= begin_key && record.key <= end_key) 
+            records.push_back(record);
+        
+    }
+
+    File_data.close();
+
+    sort(records.begin(), records.end(), compare);
+
+    return records;
+}
+Record SequentialFile::search(int key){
+
+    Record record;
+    
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    
+    if (!File_data) {
+        cerr << "Error opening file!" << endl;
+        return record;
+    }
+    
+    File_data.seekg(0, ios::beg);
+    
+    int left = 0, right, middle;
+    File_data.seekg(0, ios::end);
+    right = File_data.tellg() / sizeof(Record) - 1;
+    
+    int first_pos = -1;
+    
+    while (left <= right) {
+        middle = (left + right) / 2;
+        File_data.seekg(middle * sizeof(Record), ios::beg);
+        File_data.read(reinterpret_cast<char*>(&record), sizeof(Record));
+        
+        if (record.key == key) {
+            File_data.close();
+            return record;
+        }
+        else if (record.key > key) 
+            right = middle - 1;
+        else
+            left = middle + 1;
+    }
+    File_data.close(); 
+
+    File_data.open(aux_data, ios::in | ios::out | ios::binary);
+    File_data.seekg(0, ios::beg);
+    while (File_data.read((char*) &record, Record_size)) {
+        if (record.key == key) {
+            File_data.close();
+            return record;
+        }
+    }
+    File_data.close();
+
+    cout << "Record not found" << endl;
+    return record;
+
+    
+};
 
 vector<Record> read_from_csv(string filename){
     vector<Record> records;

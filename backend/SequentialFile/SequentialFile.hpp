@@ -29,6 +29,8 @@ public:
     int total_records();    
     void insert(Record record);
     void remove_record(int key);
+    vector<Record> range_search(int begin_key, int end_key);
+    Record search(int key);
     void show_records(string name);
     void destroy();
     void description();
