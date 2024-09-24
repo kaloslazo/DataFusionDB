@@ -1,9 +1,9 @@
+#include "SQLParser.hpp"
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
-#include "SQLParser.hpp"
 #include "AvlRecordA.hpp"
 
 using namespace std;
@@ -34,6 +34,8 @@ Record* SQLParser::search_id(const string& id) {
   if (record_type == TYPE_RECORD_A) {
     char id_arr[23];
     strncpy(id_arr, id.c_str(), sizeof(id_arr));
+    id_arr[sizeof(id_arr) - 1] = '\0';
+    cout << "id_arr: " << id_arr << endl;
     RecordA found = avl_a->find(id_arr);
     return new RecordA(found);
   } else if (record_type == TYPE_RECORD_B) {
@@ -53,7 +55,8 @@ SQLParser::SQLParser() {
 SQLParser::~SQLParser() {
   delete avl_a;
   delete avl_b;
-  for (auto record : records) delete record;
+  for (auto record : records)
+    delete record;
 };
 
 // handle the query, execution uses internal functions
@@ -62,7 +65,8 @@ SQLParser::~SQLParser() {
 vector<Record*> SQLParser::execute_query(const string& query) {
   vector<Record*> result;
   string lower_query = query;
-  transform(lower_query.begin(), lower_query.end(), lower_query.begin(), ::tolower);
+  transform(lower_query.begin(), lower_query.end(), lower_query.begin(),
+            ::tolower);
 
   if (lower_query.find("select") == 0) {
     result = select_query(query);
@@ -81,18 +85,20 @@ vector<Record*> SQLParser::execute_query(const string& query) {
   return result;
 }
 
-vector<Record*> SQLParser::select_query(const string &query) {
+vector<Record*> SQLParser::select_query(const string& query) {
   vector<Record*> result;
-  if(!table_created) {
+  if (!table_created) {
     cerr << "Error: Table not created" << endl;
     return result;
   }
-  regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(.+))?)", regex::icase);
+  regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(.+))?)",
+                     regex::icase);
   smatch match;
-  if(regex_match(query, match, select_regex)) {
+  if (regex_match(query, match, select_regex)) {
     string table_name = match[1];
     string condition_where = match[2];
-    if(condition_where.empty()) {
+    cout << "condition_where: " << condition_where << endl;
+    if (condition_where.empty()) {
       if (record_type == TYPE_RECORD_A) {
         vector<AvlRecordA> all_records = avl_a->inorder();
         for (const auto& rec : all_records) {
@@ -105,7 +111,29 @@ vector<Record*> SQLParser::select_query(const string &query) {
         }
       }
     } else {
-      // ... (resto del código sin cambios)
+      if (record_type == TYPE_RECORD_A) {
+        // usar solo lo que esta entre comillas
+        size_t posIgual = condition_where.find("=");
+        string valor = condition_where.substr(posIgual + 1);
+        valor.erase(0, valor.find_first_not_of(' '));
+        valor.erase(0, 1);
+        valor.erase(valor.size() - 1);
+        cout << "valor: " << valor << endl;
+        Record* record = search_id(valor);
+        result.push_back(record);
+        record->Print();
+      } else if (record_type == TYPE_RECORD_B) {
+        // usar solo lo que esta entre comillas
+        size_t posIgual = condition_where.find("=");
+        string valor = condition_where.substr(posIgual + 1);
+        valor.erase(0, valor.find_first_not_of(' '));
+        valor.erase(0, 1);
+        valor.erase(valor.size() - 1);
+        cout << "valor: " << valor << endl;
+        Record* record = search_id(valor);
+        result.push_back(record);
+        record->Print();
+      }
     }
   } else {
     cerr << "Error: Query syntax is not correct for SELECT" << endl;
@@ -114,9 +142,10 @@ vector<Record*> SQLParser::select_query(const string &query) {
 }
 
 // create the table means use the desired structure and initialize
-void SQLParser::create_table(const string &query) {
+void SQLParser::create_table(const string& query) {
   // regex to find the parameters
-  regex create_regex(R"(create\s+table\s+(\w+)\s+from\s+file\s+"([^"]+)\")", regex::icase);
+  regex create_regex(R"(create\s+table\s+(\w+)\s+from\s+file\s+"([^"]+)\")",
+                     regex::icase);
   smatch match;
 
   if (regex_match(query, match, create_regex)) {
@@ -132,6 +161,7 @@ void SQLParser::create_table(const string &query) {
 
     string header_csv;
     getline(file, header_csv);
+    file.close();
     set_record_type(header_csv);
 
     if (record_type == TYPE_RECORD_A) {
@@ -139,7 +169,7 @@ void SQLParser::create_table(const string &query) {
 
     } else if (record_type == TYPE_RECORD_B) {
       avl_b = new AVLFileB<char[18]>(filename);
-    }; 
+    };
 
     table_created = true;
     cout << "OK. Table created" << endl;
@@ -150,17 +180,18 @@ void SQLParser::create_table(const string &query) {
 };
 
 // insert elements in the desired structure, replace with own !!
-void SQLParser::insert_query(const string &query) {
+void SQLParser::insert_query(const string& query) {
   if (!table_created) {
     cerr << "Error. Table not created" << endl;
     return;
   };
 
   // regex to find the parameters
-  regex insert_regex(R"(insert\s+into\s+(\w+)\s+values\s*\(([^)]+)\))", regex::icase);
+  regex insert_regex(R"(insert\s+into\s+(\w+)\s+values\s*\(([^)]+)\))",
+                     regex::icase);
   smatch match;
 
-  if(regex_match(query, match, insert_regex)) {
+  if (regex_match(query, match, insert_regex)) {
     string table_name = match[1];
     string values_delimited = match[2];
 
@@ -170,17 +201,17 @@ void SQLParser::insert_query(const string &query) {
     string item_record;
 
     // replace the function with the desired structure
-    while(getline(ss, item_record, ',')) {
+    while (getline(ss, item_record, ',')) {
       item_record = regex_replace(item_record, regex("^ +| +$|( ) +"), "$1");
       values_split.push_back(item_record);
     };
 
     if ((record_type == TYPE_RECORD_A && values_split.size() != 5) ||
-      (record_type == TYPE_RECORD_B && values_split.size() != 4)) {
+        (record_type == TYPE_RECORD_B && values_split.size() != 4)) {
       cerr << "Error. Incorrect number of values for INSERT" << endl;
       return;
     }
-    
+
     Record* record = create_record(values_split);
     if (record_type == TYPE_RECORD_A) {
       avl_a->insert(*static_cast<RecordA*>(record));
@@ -198,12 +229,12 @@ void SQLParser::insert_query(const string &query) {
 };
 
 // update the information with desired structure
-void SQLParser::update_query(const string &query) {
+void SQLParser::update_query(const string& query) {
   cout << "falta conectar esto :(" << endl;
 };
 
 // delete the information with desired structure
-void SQLParser::delete_query(const string &query) {
+void SQLParser::delete_query(const string& query) {
   cout << "falta conectar esto :(" << endl;
 };
 
@@ -223,7 +254,6 @@ Record* SQLParser::create_record(const vector<string>& values) {
     throw runtime_error("Unknown record type");
   }
 }
-
 
 // set the record type with the header of the csv
 void SQLParser::set_record_type(const string& header) {
