@@ -15,6 +15,8 @@ ext_modules = [
             "backend/link_connection.cpp",
             "backend/SQLParser.cpp",
             "backend/Record.cpp",
+            "backend/AvlRecordA.cpp",
+            "backend/AvlRecordB.cpp",
         ],
         include_dirs=[
             pyb11_include,
