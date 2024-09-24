@@ -175,6 +175,28 @@ bool ExtendibleHashing<RECORD, TK>::Insert(RECORD record) {
   }
 }
 
+// search with key in bucket
+template <class RECORD, class TK>
+optional<RECORD> ExtendibleHashing<RECORD, TK>::Search(TK key) {
+  // Calculate the bucket index using the hash function
+  int bucket_index = Hash(key);
+
+  // Get the bucket address
+  int bucket_address = Bucket_addresses[bucket_index];
+  cout << "[+] Bucket address: " << bucket_address << endl;
+
+  // Load the bucket from the file
+  Bucket<RECORD, TK>* bucket = Load_bucket(bucket_address);
+
+  // Search the bucket for the record with the given key
+  RECORD* result = bucket->Search(key);
+
+  if (result != nullptr) {
+    return *result;
+  }
+  return nullopt;
+}
+
 // handle split bucket and expand directory
 template <class RECORD, class TK>
 void ExtendibleHashing<RECORD, TK>::Split_bucket(TK key,
