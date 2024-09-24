@@ -35,13 +35,13 @@ Record* SQLParser::search_id(const string& id) {
     char id_arr[23];
     strncpy(id_arr, id.c_str(), sizeof(id_arr));
     id_arr[sizeof(id_arr) - 1] = '\0';
-    cout << "id_arr: " << id_arr << endl;
-    RecordA found = avl_a->find(id_arr);
+    // cout << "id_arr: " << id_arr << endl;
+    AvlRecordA found = avl_a->find(id_arr);
     return new RecordA(found);
   } else if (record_type == TYPE_RECORD_B) {
     char id_arr[18];
     strncpy(id_arr, id.c_str(), sizeof(id_arr));
-    RecordB found = avl_b->find(id_arr);
+    AvlRecordB found = avl_b->find(id_arr);
     return new RecordB(found);
   }
   return nullptr;
@@ -97,7 +97,6 @@ vector<Record*> SQLParser::select_query(const string& query) {
   if (regex_match(query, match, select_regex)) {
     string table_name = match[1];
     string condition_where = match[2];
-    cout << "condition_where: " << condition_where << endl;
     if (condition_where.empty()) {
       if (record_type == TYPE_RECORD_A) {
         vector<AvlRecordA> all_records = avl_a->inorder();
@@ -118,10 +117,10 @@ vector<Record*> SQLParser::select_query(const string& query) {
         valor.erase(0, valor.find_first_not_of(' '));
         valor.erase(0, 1);
         valor.erase(valor.size() - 1);
-        cout << "valor: " << valor << endl;
+        // cout << "valor: " << valor << endl;
         Record* record = search_id(valor);
         result.push_back(record);
-        record->Print();
+        // record->Print();
       } else if (record_type == TYPE_RECORD_B) {
         // usar solo lo que esta entre comillas
         size_t posIgual = condition_where.find("=");
@@ -129,10 +128,10 @@ vector<Record*> SQLParser::select_query(const string& query) {
         valor.erase(0, valor.find_first_not_of(' '));
         valor.erase(0, 1);
         valor.erase(valor.size() - 1);
-        cout << "valor: " << valor << endl;
+        // cout << "valor: " << valor << endl;
         Record* record = search_id(valor);
         result.push_back(record);
-        record->Print();
+        // record->Print();
       }
     }
   } else {
