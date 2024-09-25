@@ -77,7 +77,7 @@ int ExtendibleHashing<RECORD, TK>::Hash(TK key) {
     std::hash<TK> hash_key;
     size_t key_hash = hash_key(key);
     int bucket_index = key_hash & ((1 << Global_depth) - 1);
-    std::cout << "Hashing key: " << key << ", Hash value: " << bucket_index << std::endl;
+    // std::cout << "Hashing key: " << key << ", Hash value: " << bucket_index << std::endl;
     return bucket_index;
 }
 
@@ -178,14 +178,13 @@ bool ExtendibleHashing<RECORD, TK>::Insert(RECORD record) {
 
         if (bucket->Current_size < bucket->Max_bucket_size) {
             bucket->Insert(record);
-            std::cout << "[+] Inserted record and saved key " << record.key()
-                      << " in bucket in position " << bucket_directory_index << std::endl;
+            // std::cout << "[+] Inserted record and saved key " << record.key() << " in bucket in position " << bucket_directory_index << std::endl;
             Save_bucket(bucket, bucket_directory_index);
             delete bucket;  // Asegúrate de liberar la memoria aquí
             return true;
         }
 
-        std::cout << "[!] Bucket is full. Splitting bucket" << std::endl;
+        // std::cout << "[!] Bucket is full. Splitting bucket" << std::endl;
         Split_bucket(record.key(), bucket_directory_index);
         delete bucket;  // Asegúrate de liberar la memoria aquí también
 
@@ -196,9 +195,9 @@ bool ExtendibleHashing<RECORD, TK>::Insert(RECORD record) {
 template <class RECORD, class TK>
 std::optional<RECORD> ExtendibleHashing<RECORD, TK>::Search(TK key) {
     int bucket_index = Hash(key);
-    std::cout << "Searching in bucket: " << bucket_index << std::endl;
+    // std::cout << "Searching in bucket: " << bucket_index << std::endl;
     Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
-    std::cout << "Loaded bucket at address: " << bucket << std::endl;
+    // std::cout << "Loaded bucket at address: " << bucket << std::endl;
     std::optional<RECORD> result = bucket->Search(key);
     if (result) {
         std::cout << "Record found in bucket" << std::endl;
@@ -214,7 +213,7 @@ void ExtendibleHashing<RECORD, TK>::Split_bucket(TK key, int bucket_directory_in
     Bucket<RECORD, TK>* old_bucket = Load_bucket(bucket_directory_index);
 
     if (old_bucket->Local_depth == Global_depth) {
-        std::cout << "[!] Expanding directory" << std::endl;
+        // std::cout << "[!] Expanding directory" << std::endl;
         Expand_directory();
     }
 
@@ -225,7 +224,7 @@ void ExtendibleHashing<RECORD, TK>::Split_bucket(TK key, int bucket_directory_in
 
     int new_bucket_index = bucket_directory_index | (1 << (old_bucket->Local_depth - 1));
 
-    std::cout << "[+] Redistributing records between buckets" << std::endl;
+    // std::cout << "[+] Redistributing records between buckets" << std::endl;
 
     for (int i = 0; i < old_bucket->Current_size; i++) {
         RECORD* record = &old_bucket->Records[i];
@@ -244,7 +243,7 @@ void ExtendibleHashing<RECORD, TK>::Split_bucket(TK key, int bucket_directory_in
         }
     }
 
-    std::cout << "[+] Redistributed records" << std::endl;
+    // std::cout << "[+] Redistributed records" << std::endl;
     Save_bucket(old_bucket, bucket_directory_index);
     Save_bucket(new_bucket, new_bucket_index);
 
@@ -323,13 +322,43 @@ void ExtendibleHashing<RECORD, TK>::Load_csv(std::string filename) {
             continue;
         }
 
-        std::cout << "ID: " << id << std::endl;
+        // std::cout << "ID: " << id << std::endl;
 
         RECORD record(id, name, album, album_id, artists);
-        record.Print();
+        //record.Print();
 
         Insert(record);
     }
 }
+
+template <class RECORD, class TK>
+bool ExtendibleHashing<RECORD, TK>::Remove(TK key) {
+    int bucket_index = Hash(key);
+    Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
+    
+    bool removed = false;
+    for (int i = 0; i < bucket->Current_size; i++) {
+        if (bucket->Records[i].key() == key) {
+            // Shift all elements after the removed one
+            for (int j = i; j < bucket->Current_size - 1; j++) {
+                bucket->Records[j] = bucket->Records[j + 1];
+            }
+            bucket->Current_size--;
+            removed = true;
+            break;
+        }
+    }
+
+    if (removed) {
+        Save_bucket(bucket, bucket_index);
+        std::cout << "Record with key " << key << " removed from bucket " << bucket_index << std::endl;
+    } else {
+        std::cout << "Record with key " << key << " not found in bucket " << bucket_index << std::endl;
+    }
+
+    delete bucket;
+    return removed;
+}
+
 
 #endif // EXTENDIBLEHASHING_HPP
