@@ -1,22 +1,9 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 #include "SQLParser.hpp"
-=======
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
-<<<<<<< HEAD
-=======
-#include "SQLParser.hpp"
-<<<<<<< HEAD
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 #include "AvlRecordA.hpp"
 
 using namespace std;
@@ -47,30 +34,14 @@ Record* SQLParser::search_id(const string& id) {
   if (record_type == TYPE_RECORD_A) {
     char id_arr[23];
     strncpy(id_arr, id.c_str(), sizeof(id_arr));
-<<<<<<< HEAD
-<<<<<<< HEAD
     id_arr[sizeof(id_arr) - 1] = '\0';
     // cout << "id_arr: " << id_arr << endl;
     AvlRecordA found = avl_a->find(id_arr);
-=======
-    RecordA found = avl_a->find(id_arr);
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-    RecordA found = avl_a->find(id_arr);
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
     return new RecordA(found);
   } else if (record_type == TYPE_RECORD_B) {
     char id_arr[18];
     strncpy(id_arr, id.c_str(), sizeof(id_arr));
-<<<<<<< HEAD
-<<<<<<< HEAD
     AvlRecordB found = avl_b->find(id_arr);
-=======
-    RecordB found = avl_b->find(id_arr);
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-    RecordB found = avl_b->find(id_arr);
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
     return new RecordB(found);
   }
   return nullptr;
@@ -84,13 +55,8 @@ SQLParser::SQLParser() {
 SQLParser::~SQLParser() {
   delete avl_a;
   delete avl_b;
-<<<<<<< HEAD
-<<<<<<< HEAD
   for (auto record : records)
     delete record;
-=======
-  for (auto record : records) delete record;
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 };
 
 // handle the query, execution uses internal functions
@@ -99,12 +65,8 @@ SQLParser::~SQLParser() {
 vector<Record*> SQLParser::execute_query(const string& query) {
   vector<Record*> result;
   string lower_query = query;
-<<<<<<< HEAD
   transform(lower_query.begin(), lower_query.end(), lower_query.begin(),
             ::tolower);
-=======
-  transform(lower_query.begin(), lower_query.end(), lower_query.begin(), ::tolower);
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 
   if (lower_query.find("select") == 0) {
     result = select_query(query);
@@ -123,7 +85,6 @@ vector<Record*> SQLParser::execute_query(const string& query) {
   return result;
 }
 
-<<<<<<< HEAD
 vector<Record*> SQLParser::select_query(const string& query) {
   vector<Record*> result;
   if (!table_created) {
@@ -137,59 +98,6 @@ vector<Record*> SQLParser::select_query(const string& query) {
     string table_name = match[1];
     string condition_where = match[2];
     if (condition_where.empty()) {
-=======
-  for (auto record : records) delete record;
-};
-
-// handle the query, execution uses internal functions
-// handle selection with considering ranges
-
-vector<Record*> SQLParser::execute_query(const string& query) {
-  vector<Record*> result;
-  string lower_query = query;
-  transform(lower_query.begin(), lower_query.end(), lower_query.begin(), ::tolower);
-
-  if (lower_query.find("select") == 0) {
-    result = select_query(query);
-  } else if (lower_query.find("create table") == 0) {
-    create_table(query);
-  } else if (lower_query.find("insert into") == 0) {
-    insert_query(query);
-  } else if (lower_query.find("update") == 0) {
-    update_query(query);
-  } else if (lower_query.find("delete from") == 0) {
-    delete_query(query);
-  } else {
-    cerr << "Error: Unsupported query type" << endl;
-  }
-
-  return result;
-}
-
-vector<Record*> SQLParser::select_query(const string &query) {
-  vector<Record*> result;
-  if(!table_created) {
-    cerr << "Error: Table not created" << endl;
-    return result;
-  }
-=======
-vector<Record*> SQLParser::select_query(const string &query) {
-  vector<Record*> result;
-  if(!table_created) {
-    cerr << "Error: Table not created" << endl;
-    return result;
-  }
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
-  regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(.+))?)", regex::icase);
-  smatch match;
-  if(regex_match(query, match, select_regex)) {
-    string table_name = match[1];
-    string condition_where = match[2];
-    if(condition_where.empty()) {
-<<<<<<< HEAD
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
       if (record_type == TYPE_RECORD_A) {
         vector<AvlRecordA> all_records = avl_a->inorder();
         for (const auto& rec : all_records) {
@@ -202,8 +110,6 @@ vector<Record*> SQLParser::select_query(const string &query) {
         }
       }
     } else {
-<<<<<<< HEAD
-<<<<<<< HEAD
       if (record_type == TYPE_RECORD_A) {
         // usar solo lo que esta entre comillas
         size_t posIgual = condition_where.find("=");
@@ -227,12 +133,6 @@ vector<Record*> SQLParser::select_query(const string &query) {
         result.push_back(record);
         // record->Print();
       }
-=======
-      // ... (resto del código sin cambios)
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-      // ... (resto del código sin cambios)
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
     }
   } else {
     cerr << "Error: Query syntax is not correct for SELECT" << endl;
@@ -260,13 +160,7 @@ void SQLParser::create_table(const string& query) {
 
     string header_csv;
     getline(file, header_csv);
-<<<<<<< HEAD
-<<<<<<< HEAD
     file.close();
-=======
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
     set_record_type(header_csv);
 
     if (record_type == TYPE_RECORD_A) {
@@ -274,15 +168,7 @@ void SQLParser::create_table(const string& query) {
 
     } else if (record_type == TYPE_RECORD_B) {
       avl_b = new AVLFileB<char[18]>(filename);
-<<<<<<< HEAD
-<<<<<<< HEAD
     };
-=======
-    }; 
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-    }; 
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 
     table_created = true;
     cout << "OK. Table created" << endl;
@@ -320,27 +206,11 @@ void SQLParser::insert_query(const string& query) {
     };
 
     if ((record_type == TYPE_RECORD_A && values_split.size() != 5) ||
-<<<<<<< HEAD
-<<<<<<< HEAD
         (record_type == TYPE_RECORD_B && values_split.size() != 4)) {
       cerr << "Error. Incorrect number of values for INSERT" << endl;
       return;
     }
 
-=======
-      (record_type == TYPE_RECORD_B && values_split.size() != 4)) {
-      cerr << "Error. Incorrect number of values for INSERT" << endl;
-      return;
-    }
-    
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-      (record_type == TYPE_RECORD_B && values_split.size() != 4)) {
-      cerr << "Error. Incorrect number of values for INSERT" << endl;
-      return;
-    }
-    
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
     Record* record = create_record(values_split);
     if (record_type == TYPE_RECORD_A) {
       avl_a->insert(*static_cast<RecordA*>(record));
@@ -358,26 +228,12 @@ void SQLParser::insert_query(const string& query) {
 };
 
 // update the information with desired structure
-<<<<<<< HEAD
 void SQLParser::update_query(const string& query) {
-=======
-void SQLParser::update_query(const string &query) {
-<<<<<<< HEAD
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
   cout << "falta conectar esto :(" << endl;
 };
 
 // delete the information with desired structure
-<<<<<<< HEAD
 void SQLParser::delete_query(const string& query) {
-=======
-void SQLParser::delete_query(const string &query) {
-<<<<<<< HEAD
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
   cout << "falta conectar esto :(" << endl;
 };
 
@@ -398,14 +254,6 @@ Record* SQLParser::create_record(const vector<string>& values) {
   }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
->>>>>>> 4eaea94 (feat: gui with autodetect record)
-=======
-
->>>>>>> 2ec4e6d (feat: gui with autodetect record)
 // set the record type with the header of the csv
 void SQLParser::set_record_type(const string& header) {
   if (header.find("id,name,album,album_id,artists") != string::npos) {
