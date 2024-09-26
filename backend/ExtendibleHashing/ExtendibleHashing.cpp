@@ -21,10 +21,12 @@ void ExtendibleHashing<RECORD, TK>::Close() {
     if (File_data.is_open()) {
         std::cout << "[-] Closing file data" << std::endl;
         File_data.close();
+        remove(this->File_data_name.c_str());
     }
     if (File_buckets.is_open()) {
         std::cout << "[-] Closing file buckets" << std::endl;
         File_buckets.close();
+        remove(this->File_buckets_name.c_str());
     }
 }
 
@@ -39,6 +41,8 @@ int ExtendibleHashing<RECORD, TK>::Hash(TK key) {
 
 template <class RECORD, class TK>
 void ExtendibleHashing<RECORD, TK>::Create(std::string filename_data, std::string filename_buckets) {
+    this -> File_data_name = filename_data;
+    this -> File_buckets_name = filename_buckets;
     File_data.open(filename_data, std::ios::in | std::ios::out | std::ios::binary);
     File_buckets.open(filename_buckets, std::ios::in | std::ios::out | std::ios::binary);
 
@@ -64,6 +68,7 @@ void ExtendibleHashing<RECORD, TK>::Create(std::string filename_data, std::strin
 
     File_data.seekp(0, std::ios::beg);
     File_data.write(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+    this->n_access++;
 
     delete bucket_zero;
     delete bucket_one;
@@ -86,6 +91,7 @@ bool ExtendibleHashing<RECORD, TK>::Open(std::string filedata, std::string fileb
 
     File_data.seekg(0, std::ios::beg);
     File_data.read(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+    this->n_access++;
 
     return true;
 }
@@ -99,10 +105,12 @@ void ExtendibleHashing<RECORD, TK>::Save_bucket(Bucket<RECORD, TK>* bucket, int 
     File_buckets.write(reinterpret_cast<char*>(&bucket->Local_depth), sizeof(int));
     File_buckets.write(reinterpret_cast<char*>(&bucket->Max_bucket_size), sizeof(int));
     File_buckets.write(reinterpret_cast<char*>(&bucket->Current_size), sizeof(int));
+    this->n_access += 3;
     for (int i = 0; i < bucket->Current_size; i++) {
         File_buckets.write(reinterpret_cast<char*>(&bucket->Records[i]), sizeof(RECORD));
+        this->n_access++;
     }
-    File_buckets.flush();
+    // File_buckets.flush();
 
     Bucket_addresses[bucket_directory_index] = bucket_offset;
 }
@@ -117,8 +125,10 @@ Bucket<RECORD, TK>* ExtendibleHashing<RECORD, TK>::Load_bucket(int bucket_direct
     File_buckets.read(reinterpret_cast<char*>(&bucket->Local_depth), sizeof(int));
     File_buckets.read(reinterpret_cast<char*>(&bucket->Max_bucket_size), sizeof(int));
     File_buckets.read(reinterpret_cast<char*>(&bucket->Current_size), sizeof(int));
+    this->n_access += 3;
     for (int i = 0; i < bucket->Current_size; i++) {
         File_buckets.read(reinterpret_cast<char*>(&bucket->Records[i]), sizeof(RECORD));
+        this->n_access++;
     }
 
     return bucket;
@@ -155,12 +165,41 @@ std::optional<RECORD> ExtendibleHashing<RECORD, TK>::Search(TK key) {
     // std::cout << "Loaded bucket at address: " << bucket << std::endl;
     std::optional<RECORD> result = bucket->Search(key);
     if (result) {
-        std::cout << "Record found in bucket" << std::endl;
+        // std::cout << "Record found in bucket" << std::endl;
     } else {
-        std::cout << "Record not found in bucket" << std::endl;
+        // std::cout << "Record not found in bucket" << std::endl;
     }
-    delete bucket;
+    // delete bucket;
     return result;
+}
+
+template <class RECORD, class TK>
+bool ExtendibleHashing<RECORD, TK>::Remove(TK key) {
+    int bucket_index = Hash(key);
+    Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
+    
+    bool removed = false;
+    for (int i = 0; i < bucket->Current_size; i++) {
+        if (bucket->Records[i].key() == key) {
+            // Shift all elements after the removed one
+            for (int j = i; j < bucket->Current_size - 1; j++) {
+                bucket->Records[j] = bucket->Records[j + 1];
+            }
+            bucket->Current_size--;
+            removed = true;
+            break;
+        }
+    }
+
+    // if (removed) {
+    //     Save_bucket(bucket, bucket_index);
+    //     std::cout << "Record with key " << key << " removed from bucket " << bucket_index << std::endl;
+    // } else {
+    //     std::cout << "Record with key " << key << " not found in bucket " << bucket_index << std::endl;
+    // }
+
+    delete bucket;
+    return removed;
 }
 
 template <class RECORD, class TK>
@@ -222,6 +261,7 @@ void ExtendibleHashing<RECORD, TK>::Expand_directory() {
 
     File_data.seekp(0, std::ios::beg);
     File_data.write(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+    this->n_access++;
     File_data.flush();
 }
 
@@ -286,32 +326,16 @@ void ExtendibleHashing<RECORD, TK>::Load_csv(std::string filename) {
     }
 }
 
-// template <class RECORD, class TK>
-// bool ExtendibleHashing<RECORD, TK>::Remove(TK key) {
-//     int bucket_index = Hash(key);
-//     Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
+template <class RECORD, class TK>
+vector<RECORD> ExtendibleHashing<RECORD, TK>::Get_all() {
+    vector<RECORD> records;
     
-//     bool removed = false;
-//     for (int i = 0; i < bucket->Current_size; i++) {
-//         if (bucket->Records[i].key() == key) {
-//             // Shift all elements after the removed one
-//             for (int j = i; j < bucket->Current_size - 1; j++) {
-//                 bucket->Records[j] = bucket->Records[j + 1];
-//             }
-//             bucket->Current_size--;
-//             removed = true;
-//             break;
-//         }
-//     }
-
-//     if (removed) {
-//         Save_bucket(bucket, bucket_index);
-//         std::cout << "Record with key " << key << " removed from bucket " << bucket_index << std::endl;
-//     } else {
-//         std::cout << "Record with key " << key << " not found in bucket " << bucket_index << std::endl;
-//     }
-
-//     delete bucket;
-//     return removed;
-// }
-
+    for (int i = 0; i < Num_cells; i++) {
+        Bucket<RECORD, TK>* bucket = Load_bucket(i);
+        for (int j = 0; j < bucket->Current_size; j++) {
+            records.push_back(bucket->Records[j]);
+        }
+        delete bucket;
+    }
+    return records;
+}
