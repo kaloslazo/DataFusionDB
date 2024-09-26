@@ -34,6 +34,7 @@ public:
     void show_records(string name, int max_records);
     void destroy();
     void description();
+    void create_file(vector<SeqRecordA>&records);
 };
 
 SequentialFileA::SequentialFileA(string filename_data, string aux_data, int record_size){
@@ -428,4 +429,20 @@ vector<SeqRecordA> read_from_csvA(string filename){
     }
 
     return records;
+};
+
+void SequentialFileA::create_file(vector<SeqRecordA>& records){
+    sort(records.begin(), records.end(), compareA);
+
+    File_data.open(filename_data, ios::in | ios::out | ios::binary);
+    File_data.seekp(0, ios::beg);
+
+    for (SeqRecordA record : records) {
+        File_data.write((char*) &record, Record_size);
+    }
+
+    File_data.close();
+
+    return;
+
 };

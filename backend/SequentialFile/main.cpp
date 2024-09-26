@@ -17,22 +17,14 @@ int main(){
     SequentialFileA fileA("spotify_data.dat", "spotify_data_aux.dat", sizeof(SeqRecordA));
     SequentialFileB fileB("car_prices.dat", "car_prices_aux.dat", sizeof(SeqRecordB));
 
-    //Insert the records into the Sequential Files
-    // for (auto record : dataA) {
-    //     fileA.insert(record);
-    // }
-
-    // for (auto record : dataB) {
-    //     fileB.insert(record);
-    // }
-
+    fileA.create_file(dataA);
+    fileB.create_file(dataB);
+    
     //Show the description of the Sequential Files
     fileA.description();
     fileB.description();
 
-
     //Take a look of the times taken to find a record
-
     cout<<"Searching Times"<<endl;
     auto id = dataA[0].id;
     auto start = chrono::high_resolution_clock::now();
