@@ -5,7 +5,7 @@ import pandas as pd
 delimiter = "\n" + "-" * 50
 
 # data analysis for spotify
-df = pd.read_csv("./data/car_prices.csv", encoding="ISO-8859-1")
+df = pd.read_csv("./backend/data/car_prices.csv", encoding="ISO-8859-1")
 
 print(delimiter)
 print("Dataframe information:")
@@ -52,10 +52,10 @@ print(df.sample(20))
 df_sample = df.sample(n=100000, random_state=None)
 
 # guardar el dataframe limpio
-df_sample.to_csv("./data/car_prices_extended.csv", index=False)
+df_sample.to_csv("./backend/data/car_prices_clean.csv", index=False)
 
 # Seleccionar una muestra aleatoria de 10,000 filas
-df_sample = df.sample(n=10000, random_state=None)
+# df_sample = df.sample(n=10000, random_state=None)
 
 # guardar el dataframe limpio
-df_sample.to_csv("./data/car_prices_demo.csv", index=False)
+# df_sample.to_csv("./data/car_prices_demo.csv", index=False)
