@@ -11,3 +11,6 @@ venv/
 
 # archivos de configuracion
 *.conf
+.aider*
+*.dat
+*.vscode/
