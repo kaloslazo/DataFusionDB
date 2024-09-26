@@ -21,7 +21,7 @@ class AVLFileA {
     long long int n_access = 0;
 
    private:
-    string filename = "./data/avlb.dat";
+    string filename = "../data/avlb.dat";
     AvlHeaderA header;
     bool debug = false;
 

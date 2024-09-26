@@ -75,7 +75,7 @@ vector<RecordA> leerCSV(const string& filename) {
     return records;
 }
 
-string dataset = "../../data/spotify_data_clean.csv";
+string dataset = "../data/spotify_data_clean.csv";
 
 void readFile() {
     int count = 0;
