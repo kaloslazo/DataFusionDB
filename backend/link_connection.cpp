@@ -31,5 +31,5 @@ PYBIND11_MODULE(link_connection, m) {
     .def_readwrite("model", &RecordB::model)
     .def_readwrite("vin", &RecordB::vin);
 
-    m.def("execute_query", &execute_query, "Function to handle SQL queries", py::return_value_policy::reference_internal);
+  m.def("execute_query", &execute_query, "Function to handle SQL queries", py::return_value_policy::reference_internal);
 }

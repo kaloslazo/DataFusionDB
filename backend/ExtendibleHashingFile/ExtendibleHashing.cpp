@@ -507,3 +507,6 @@ int ExtendibleHashing<RECORD, TK>::get_index_to_merge(
 
   return index;
 }
+
+template class ExtendibleHashing<EHRecordA, std::string>;
+template class ExtendibleHashing<EHRecordB, std::string>;
