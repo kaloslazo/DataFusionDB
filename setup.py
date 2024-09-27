@@ -15,20 +15,23 @@ ext_modules = [
             "backend/link_connection.cpp",
             "backend/SQLParser.cpp",
             "backend/Record.cpp",
-            "backend/AvlRecordA.cpp",
-            "backend/AvlRecordB.cpp",
+            "backend/AvlFile/AvlRA.cpp",
+            "backend/AvlFile/AvlRB.cpp",
+            "backend/SequentialFile/SequentialFileRA.cpp",
+            "backend/SequentialFile/SequentialFileRB.cpp",
         ],
         include_dirs=[
             pyb11_include,
             python_include_dir,
             "backend",
+            "backend/AvlFile",
+            "backend/SequentialFile",
         ],
         language = "c++",
         extra_compile_args = ["-std=c++17", "-g"],
     ),
-];
+]
 
-# configuracion para la compilacion
 # se ejecuta con python setup.py build_ext --inplace
 setup(
     name = "link_connection",
