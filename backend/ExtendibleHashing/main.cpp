@@ -1,5 +1,5 @@
 #include <ctime>
-#include "ExtendibleHashing.cpp"
+#include "ExtendibleHashing.hpp"
 
 using namespace std;
 
@@ -147,6 +147,8 @@ int main() {
   // cout << "[!] n_access: " << eh.n_access << endl;
 
   // cout << "------------------------------------------\n";
+
+  eh.Close();
 
   return 0;
 };
