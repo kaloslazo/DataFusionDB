@@ -1,4 +1,4 @@
-# archivos de compilacion
+j# archivos de compilacion
 build/
 *.o
 *.so
@@ -10,6 +10,7 @@ build/
 *.log
 *.out
 *.dat
+data/*.dat
 
 # archivos de entorno
 *.env
