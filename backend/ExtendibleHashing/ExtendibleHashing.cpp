@@ -1,341 +1,462 @@
 #include "ExtendibleHashing.hpp"
-#include "Bucket.cpp"
-// Implementation
 
-template <class RECORD, class TK>
-ExtendibleHashing<RECORD, TK>::ExtendibleHashing(int global_depth, int bucket_size) {
-    Global_depth = global_depth;
-    Num_cells = pow(2, Global_depth);
-    Bucket_size = bucket_size;
-    Bucket_addresses.resize(Num_cells, -1);
+int hash_function(string key, int depth) {
+  hash<string> hash;
+  return hash(key) % int(std::pow(2, depth));
 }
 
 template <class RECORD, class TK>
-ExtendibleHashing<RECORD, TK>::~ExtendibleHashing() {
-    Close();
+void ExtendibleHashing<RECORD, TK>::loadCSV(const string& filename) {
+  std::ifstream file(filename);
+  string line;
+  vector<EHRecordB> records;
+
+  if (!file.is_open()) {
+    cerr << "No se pudo abrir el archivo.\n";
+    return;
+  }
+
+  getline(file, line);
+
+  while (getline(file, line)) {
+    stringstream ss(line);
+    string token;
+    EHRecordB record;
+
+    getline(ss, token, ',');
+    record.year = stoi(token);
+
+    getline(ss, token, ',');
+    strncpy(record.make, token.c_str(), sizeof(record.make));
+    record.make[sizeof(record.make) - 1] = '\0';
+
+    getline(ss, token, ',');
+    strncpy(record.model, token.c_str(), sizeof(record.model));
+    record.model[sizeof(record.model) - 1] = '\0';
+
+    getline(ss, token, '\n');
+    strncpy(record.vin, token.c_str(), sizeof(record.vin));
+    record.vin[sizeof(record.vin) - 1] = '\0';
+    this->add(record);
+  }
+
+  file.close();
+}
+template <class RECORD, class TK>
+// Constructor
+ExtendibleHashing<RECORD, TK>::ExtendibleHashing(std::string _filename) {
+  this->filename = _filename;
+  if (!fileExists(this->dataName())) {
+    this->init_file();
+  }
 }
 
 template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Close() {
-    std::cout << "[!] Closing files" << std::endl;
-    if (File_data.is_open()) {
-        std::cout << "[-] Closing file data" << std::endl;
-        File_data.close();
-        remove(this->File_data_name.c_str());
-    }
-    if (File_buckets.is_open()) {
-        std::cout << "[-] Closing file buckets" << std::endl;
-        File_buckets.close();
-        remove(this->File_buckets_name.c_str());
-    }
-}
+void ExtendibleHashing<RECORD, TK>::init_file() {
+  std::cout << "Init starting..." << std::endl;
 
-template <class RECORD, class TK>
-int ExtendibleHashing<RECORD, TK>::Hash(TK key) {
-    std::hash<TK> hash_key;
-    size_t key_hash = hash_key(key);
-    int bucket_index = key_hash & ((1 << Global_depth) - 1);
-    // std::cout << "Hashing key: " << key << ", Hash value: " << bucket_index << std::endl;
-    return bucket_index;
-}
+  std::fstream file(dataName(), std::ios::binary | std::ios::app |
+                                    std::ios::in | std::ios::out);
 
-template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Create(std::string filename_data, std::string filename_buckets) {
-    this -> File_data_name = filename_data;
-    this -> File_buckets_name = filename_buckets;
-    File_data.open(filename_data, std::ios::in | std::ios::out | std::ios::binary);
-    File_buckets.open(filename_buckets, std::ios::in | std::ios::out | std::ios::binary);
+  file.seekg(0, std::ios::end);
+  int bytes = file.tellg();
 
-    if (!File_data.is_open()) {
-        std::cout << "[+] File not exists. Creating file " << filename_data << std::endl;
-        File_data.open(filename_data, std::ios::out | std::ios::in | std::ios::binary | std::ios::trunc);
-        File_data.close();
-        File_data.open(filename_data, std::ios::in | std::ios::out | std::ios::binary);
-    }
-
-    if (!File_buckets.is_open()) {
-        std::cout << "[+] File not exists. Creating file " << filename_buckets << std::endl;
-        File_buckets.open(filename_buckets, std::ios::out | std::ios::in | std::ios::binary | std::ios::trunc);
-        File_buckets.close();
-        File_buckets.open(filename_buckets, std::ios::in | std::ios::out | std::ios::binary);
-    }
-
-    Bucket<RECORD, TK>* bucket_zero = new Bucket<RECORD, TK>(Bucket_size);
-    Bucket<RECORD, TK>* bucket_one = new Bucket<RECORD, TK>(Bucket_size);
-
-    Save_bucket(bucket_zero, 0);
-    Save_bucket(bucket_one, 1);
-
-    File_data.seekp(0, std::ios::beg);
-    File_data.write(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+  if (bytes) {
+    std::cout << "Found file. Reading it..." << std::endl;
+    // leer header free list
+    file.seekg(0, std::ios::beg);
+    file.read((char*)&this->pos_free_list, sizeof(this->pos_free_list));
     this->n_access++;
+    file.close();
+  } else {
+    std::cout << "No file found. Creating it..." << std::endl;
+    file.seekp(0, std::ios::beg);
 
-    delete bucket_zero;
-    delete bucket_one;
-}
-
-template <class RECORD, class TK>
-bool ExtendibleHashing<RECORD, TK>::Open(std::string filedata, std::string filebuckets) {
-    File_data.open(filedata, std::ios::in | std::ios::out | std::ios::binary);
-    File_buckets.open(filebuckets, std::ios::in | std::ios::out | std::ios::binary);
-
-    if (!File_data.is_open()) {
-        std::cout << "[!] Error opening file " << filedata << std::endl;
-        return false;
-    }
-
-    if (!File_buckets.is_open()) {
-        std::cout << "[!] Error opening file " << filebuckets << std::endl;
-        return false;
-    }
-
-    File_data.seekg(0, std::ios::beg);
-    File_data.read(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+    file.write((char*)&this->pos_free_list, sizeof(this->pos_free_list));
     this->n_access++;
+    file.flush();
 
-    return true;
-}
-
-template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Save_bucket(Bucket<RECORD, TK>* bucket, int bucket_directory_index) {
-    File_buckets.seekp(0, std::ios::end);
-    int bucket_offset = File_buckets.tellp();
-
-    // Escribir los datos del bucket, no el puntero
-    File_buckets.write(reinterpret_cast<char*>(&bucket->Local_depth), sizeof(int));
-    File_buckets.write(reinterpret_cast<char*>(&bucket->Max_bucket_size), sizeof(int));
-    File_buckets.write(reinterpret_cast<char*>(&bucket->Current_size), sizeof(int));
-    this->n_access += 3;
-    for (int i = 0; i < bucket->Current_size; i++) {
-        File_buckets.write(reinterpret_cast<char*>(&bucket->Records[i]), sizeof(RECORD));
-        this->n_access++;
-    }
-    // File_buckets.flush();
-
-    Bucket_addresses[bucket_directory_index] = bucket_offset;
-}
-
-template <class RECORD, class TK>
-Bucket<RECORD, TK>* ExtendibleHashing<RECORD, TK>::Load_bucket(int bucket_directory_index) {
-    int bucket_offset = Bucket_addresses[bucket_directory_index];
-
-    File_buckets.seekg(bucket_offset, std::ios::beg);
-
-    Bucket<RECORD, TK>* bucket = new Bucket<RECORD, TK>(Bucket_size);
-    File_buckets.read(reinterpret_cast<char*>(&bucket->Local_depth), sizeof(int));
-    File_buckets.read(reinterpret_cast<char*>(&bucket->Max_bucket_size), sizeof(int));
-    File_buckets.read(reinterpret_cast<char*>(&bucket->Current_size), sizeof(int));
-    this->n_access += 3;
-    for (int i = 0; i < bucket->Current_size; i++) {
-        File_buckets.read(reinterpret_cast<char*>(&bucket->Records[i]), sizeof(RECORD));
-        this->n_access++;
-    }
-
-    return bucket;
-}
-
-template <class RECORD, class TK>
-bool ExtendibleHashing<RECORD, TK>::Insert(RECORD record) {
-    int bucket_directory_index = Hash(record.key());
-
-    while (true) {
-        Bucket<RECORD, TK>* bucket = Load_bucket(bucket_directory_index);
-
-        if (bucket->Current_size < bucket->Max_bucket_size) {
-            bucket->Insert(record);
-            // std::cout << "[+] Inserted record and saved key " << record.key() << " in bucket in position " << bucket_directory_index << std::endl;
-            Save_bucket(bucket, bucket_directory_index);
-            delete bucket;  // Asegúrate de liberar la memoria aquí
-            return true;
-        }
-
-        // std::cout << "[!] Bucket is full. Splitting bucket" << std::endl;
-        Split_bucket(record.key(), bucket_directory_index);
-        delete bucket;  // Asegúrate de liberar la memoria aquí también
-
-        bucket_directory_index = Hash(record.key());
-    }
-}
-
-template <class RECORD, class TK>
-std::optional<RECORD> ExtendibleHashing<RECORD, TK>::Search(TK key) {
-    int bucket_index = Hash(key);
-    // std::cout << "Searching in bucket: " << bucket_index << std::endl;
-    Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
-    // std::cout << "Loaded bucket at address: " << bucket << std::endl;
-    std::optional<RECORD> result = bucket->Search(key);
-    if (result) {
-        // std::cout << "Record found in bucket" << std::endl;
-    } else {
-        // std::cout << "Record not found in bucket" << std::endl;
-    }
-    // delete bucket;
-    return result;
-}
-
-template <class RECORD, class TK>
-bool ExtendibleHashing<RECORD, TK>::Remove(TK key) {
-    int bucket_index = Hash(key);
-    Bucket<RECORD, TK>* bucket = Load_bucket(bucket_index);
-    
-    bool removed = false;
-    for (int i = 0; i < bucket->Current_size; i++) {
-        if (bucket->Records[i].key() == key) {
-            // Shift all elements after the removed one
-            for (int j = i; j < bucket->Current_size - 1; j++) {
-                bucket->Records[j] = bucket->Records[j + 1];
-            }
-            bucket->Current_size--;
-            removed = true;
-            break;
-        }
-    }
-
-    // if (removed) {
-    //     Save_bucket(bucket, bucket_index);
-    //     std::cout << "Record with key " << key << " removed from bucket " << bucket_index << std::endl;
-    // } else {
-    //     std::cout << "Record with key " << key << " not found in bucket " << bucket_index << std::endl;
-    // }
-
-    delete bucket;
-    return removed;
-}
-
-template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Split_bucket(TK key, int bucket_directory_index) {
-    Bucket<RECORD, TK>* old_bucket = Load_bucket(bucket_directory_index);
-
-    if (old_bucket->Local_depth == Global_depth) {
-        // std::cout << "[!] Expanding directory" << std::endl;
-        Expand_directory();
-    }
-
-    old_bucket->Local_depth++;
-
-    Bucket<RECORD, TK>* new_bucket = new Bucket<RECORD, TK>(old_bucket->Max_bucket_size);
-    new_bucket->Local_depth = old_bucket->Local_depth;
-
-    int new_bucket_index = bucket_directory_index | (1 << (old_bucket->Local_depth - 1));
-
-    // std::cout << "[+] Redistributing records between buckets" << std::endl;
-
-    for (int i = 0; i < old_bucket->Current_size; i++) {
-        RECORD* record = &old_bucket->Records[i];
-        int hash = Hash(record->key());
-
-        if ((hash & ((1 << old_bucket->Local_depth) - 1)) == new_bucket_index) {
-            new_bucket->Insert(*record);
-            old_bucket->Remove(record->key());
-            i--;
-        }
-    }
-
-    for (int i = 0; i < Num_cells; i++) {
-        if ((i & ((1 << old_bucket->Local_depth) - 1)) == new_bucket_index) {
-            Bucket_addresses[i] = File_buckets.tellp();
-        }
-    }
-
-    // std::cout << "[+] Redistributed records" << std::endl;
-    Save_bucket(old_bucket, bucket_directory_index);
-    Save_bucket(new_bucket, new_bucket_index);
-
-    delete old_bucket;
-    delete new_bucket;
-}
-
-template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Expand_directory() {
-    int new_num_cells = 2 * Num_cells;
-    std::vector<int> new_bucket_addresses(new_num_cells);
-
-    for (int i = 0; i < Num_cells; i++) {
-        new_bucket_addresses[i] = Bucket_addresses[i];
-        new_bucket_addresses[i + Num_cells] = Bucket_addresses[i];
-    }
-
-    Global_depth++;
-    Num_cells = new_num_cells;
-    Bucket_addresses = new_bucket_addresses;
-
-    File_data.seekp(0, std::ios::beg);
-    File_data.write(reinterpret_cast<char*>(&Bucket_addresses[0]), Num_cells * sizeof(int));
+    Bucket<RECORD, TK> bucket(1, 0);
+    file.write((char*)&bucket, sizeof(Bucket<RECORD, TK>));
     this->n_access++;
-    File_data.flush();
+    file.flush();
+    bucket = Bucket<RECORD, TK>(1, 1);
+    file.write((char*)&bucket, sizeof(Bucket<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+
+    file.close();
+
+    std::fstream index(idxName(), std::ios::binary | std::ios::app |
+                                      std::ios::in | std::ios::out);
+
+    for (int i = 0; i < std::pow(2, this->global_depth); i++) {
+      Index_Page_H<RECORD, TK> idx;
+      if (i % 2 == 0) {
+        idx.pointer = 0;
+      } else {
+        idx.pointer = 1;
+      }
+      index.write((char*)&idx, sizeof(Index_Page_H<RECORD, TK>));
+      this->n_access++;
+      index.flush();
+    }
+    index.close();
+  }
+  std::cout << "Init done!" << std::endl;
 }
 
 template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Print() {
-    std::cout << std::endl << "[!] Print directory with " << Num_cells << " cells" << std::endl;
+bool ExtendibleHashing<RECORD, TK>::add(RECORD reg) {
+  std::fstream index_file(idxName(),
+                          std::ios::binary | std::ios::in | std::ios::out);
 
-    for (int i = 0; i < Num_cells; i++) {
-        std::cout << "[+] Cell " << i << " with bucket address " << Bucket_addresses[i] << std::endl;
-        Bucket<RECORD, TK>* bucket = Load_bucket(i);
-        bucket->Print();
-        std::cout << std::endl;
-        delete bucket;
+  std::fstream data_file(dataName(),
+                         std::ios::binary | std::ios::in | std::ios::out);
+
+  int dir_pointer = hash_function(reg.key(), this->global_depth);
+  int pointer = get_pointer(index_file, dir_pointer);  // pointer to bucket
+
+  Bucket<RECORD, TK> bucket = read_data_page(data_file, pointer);
+  if (bucket.size < MD_H) {
+    bucket.registers[bucket.size] = reg;
+    bucket.size++;
+    write_data_page(data_file, bucket, pointer);
+  } else if (bucket.local_depth < this->global_depth) {
+    Bucket<RECORD, TK> new_bucket(bucket.local_depth, bucket.bits);
+
+    add_bit(bucket, 0);
+    add_bit(new_bucket, 1);
+
+    RECORD* temp = new RECORD[bucket.size + 1];
+    for (int i = 0; i < bucket.size; i++) {
+      temp[i] = bucket.registers[i];
     }
+    temp[bucket.size] = reg;
+    int length_temp = bucket.size + 1;
+
+    bucket.size = 0;
+    new_bucket.size = 0;
+
+    bucket.next = -1;
+    new_bucket.next = -1;
+
+    write_data_page(data_file, bucket, pointer);
+    int pointer_new_page = write_new_page(data_file, new_bucket);
+
+    re_linked_index(index_file, bucket, new_bucket, pointer, pointer_new_page);
+
+    for (int i = 0; i < length_temp; i++) {
+      add(temp[i]);
+    }
+
+    delete[] temp;
+
+  } else {
+    Bucket<RECORD, TK> new_bucket(bucket.local_depth, bucket.bits);
+    new_bucket.size = 0;
+    new_bucket.registers[new_bucket.size] = reg;
+    new_bucket.size++;
+
+    int pointer_new_page = write_new_page(data_file, new_bucket);
+
+    bucket.next = pointer_new_page;
+    write_data_page(data_file, bucket, pointer);
+  }
+
+  index_file.close();
+  data_file.close();
+  return true;
 }
 
 template <class RECORD, class TK>
-void ExtendibleHashing<RECORD, TK>::Load_csv(std::string filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cout << "[!] Error. Can't open file: " << filename << std::endl;
-        throw std::runtime_error("Error. Can't open file");
+bool ExtendibleHashing<RECORD, TK>::remove(TK key) {
+  std::fstream index_file(idxName(),
+                          std::ios::binary | std::ios::in | std::ios::out);
+
+  std::fstream data_file(dataName(),
+                         std::ios::binary | std::ios::in | std::ios::out);
+
+  int dir_pointer = hash_function(key, this->global_depth);
+  int pointer = get_pointer(index_file, dir_pointer);
+
+  Bucket<RECORD, TK> bucket_prev;
+
+  int pointer_prev = -1;
+  int count_overflow = 0;
+  bool found = false;
+
+  do {
+    Bucket<RECORD, TK> bucket = read_data_page(data_file, pointer);
+    for (int i = 0; i < bucket.size; i++) {
+      if (bucket.registers[i].key() == key) {
+        found = true;
+        if (bucket.size > 1) {
+          bucket.registers[i] = bucket.registers[bucket.size - 1];
+          bucket.size--;
+          write_data_page(data_file, bucket, pointer);
+        } else if (count_overflow == 0 && bucket.next < 0) {
+          bucket.size = 0;
+
+          bucket.free_list = this->pos_free_list;
+          this->pos_free_list = pointer;
+          write_data_page(data_file, bucket, pointer);
+
+          re_linked_index_merge(index_file, bucket);
+        } else {  // overflow
+          if (count_overflow == 0) {
+            Bucket<RECORD, TK> next_bucket =
+                read_data_page(data_file, bucket.next);
+
+            write_data_page(data_file, next_bucket, pointer);
+
+            bucket.free_list = this->pos_free_list;
+            this->pos_free_list = pointer;
+            bucket.size = 0;
+            bucket.next = -1;
+            write_data_page(data_file, bucket, pointer);
+          } else {
+            bucket_prev.next = bucket.next;
+
+            bucket.size = 0;
+            bucket.free_list = this->pos_free_list;
+            this->pos_free_list = pointer;
+            write_data_page(data_file, bucket, pointer);
+            write_data_page(data_file, bucket_prev, pointer_prev);
+          }
+        }
+      }
     }
+    if (bucket.next < 0)
+      break;
+    pointer_prev = pointer;
+    pointer = bucket.next;
+    bucket_prev = bucket;
+    count_overflow++;
 
-    std::string line;
-    std::getline(file, line);  // skip header
+  } while (true);
 
-    std::cout << "[!] Loading data from file " << filename << std::endl;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string token;
-
-        char id[23] = {0}, name[521] = {0}, album[244] = {0}, album_id[23] = {0}, artists[1124] = {0};
-
-        if (std::getline(ss, token, ',')) {
-            std::strncpy(id, token.c_str(), sizeof(id) - 1);
-        }
-        if (std::getline(ss, token, ',')) {
-            std::strncpy(name, token.c_str(), sizeof(name) - 1);
-        }
-        if (std::getline(ss, token, ',')) {
-            std::strncpy(album, token.c_str(), sizeof(album) - 1);
-        }
-        if (std::getline(ss, token, ',')) {
-            std::strncpy(album_id, token.c_str(), sizeof(album_id) - 1);
-        }
-        if (std::getline(ss, token, ',')) {
-            std::strncpy(artists, token.c_str(), sizeof(artists) - 1);
-        }
-
-        if (id[0] == '\0') {  // Skip empty records
-            std::cout << "Skipping empty record" << std::endl;
-            continue;
-        }
-
-        // std::cout << "ID: " << id << std::endl;
-
-        RECORD record(id, name, album, album_id, artists);
-        //record.Print();
-
-        Insert(record);
-    }
+  index_file.close();
+  data_file.close();
+  return found;
 }
 
 template <class RECORD, class TK>
-vector<RECORD> ExtendibleHashing<RECORD, TK>::Get_all() {
-    vector<RECORD> records;
-    
-    for (int i = 0; i < Num_cells; i++) {
-        Bucket<RECORD, TK>* bucket = Load_bucket(i);
-        for (int j = 0; j < bucket->Current_size; j++) {
-            records.push_back(bucket->Records[j]);
-        }
-        delete bucket;
+std::vector<RECORD> ExtendibleHashing<RECORD, TK>::search(TK key) {
+  std::fstream index_file(idxName(),
+                          std::ios::binary | std::ios::in | std::ios::out);
+
+  std::fstream data_file(dataName(),
+                         std::ios::binary | std::ios::in | std::ios::out);
+
+  int dir_pointer = hash_function(key, this->global_depth);
+  int pointer = get_pointer(index_file, dir_pointer);
+
+  index_file.close();
+
+  std::vector<RECORD> result;
+  do {
+    Bucket<RECORD, TK> bucket = read_data_page(data_file, pointer);
+    for (int i = 0; i < bucket.size; i++) {
+      if (bucket.registers[i].key() == key) {
+        result.push_back(bucket.registers[i]);
+      }
     }
-    return records;
+    if (bucket.next < 0)
+      break;
+
+    pointer = bucket.next;
+
+  } while (true);
+
+  return result;
+}
+
+template <class RECORD, class TK>
+std::vector<RECORD> ExtendibleHashing<RECORD, TK>::range_search(TK begin_key,
+                                                                TK end_key) {
+  std::cout << "Extendible Hashing does not support range search" << std::endl;
+  return std::vector<RECORD>();
+}
+
+template <class RECORD, class TK>
+std::string ExtendibleHashing<RECORD, TK>::dataName() {
+  return this->filename + DAT_EXT;
+}
+
+template <class RECORD, class TK>
+std::string ExtendibleHashing<RECORD, TK>::idxName() {
+  return this->filename + IDX_EXT;
+}
+
+template <class RECORD, class TK>
+bool ExtendibleHashing<RECORD, TK>::fileExists(const std::string& name) {
+  std::ifstream f(name.c_str(),
+                  std::ios::in | std::ios::binary | std::ios::ate);
+  return f.good();
+}
+
+template <class RECORD, class TK>
+void ExtendibleHashing<RECORD, TK>::add_bit(Bucket<RECORD, TK>& bucket,
+                                            int value) {
+  bucket.bits.set(bucket.local_depth, value);
+  bucket.local_depth++;
+}
+
+template <class RECORD, class TK>
+int ExtendibleHashing<RECORD, TK>::get_pointer(std::fstream& file, int index) {
+  file.seekg(index * sizeof(Index_Page_H<RECORD, TK>), std::ios::beg);
+  Index_Page_H<RECORD, TK> idx;
+  file.read((char*)&idx, sizeof(Index_Page_H<RECORD, TK>));
+  this->n_access++;
+  return idx.pointer;
+}
+
+template <class RECORD, class TK>
+Bucket<RECORD, TK> ExtendibleHashing<RECORD, TK>::read_data_page(
+    std::fstream& file,
+    int index) {
+  file.seekg(index * sizeof(Bucket<RECORD, TK>) + sizeof(int), std::ios::beg);
+  Bucket<RECORD, TK> bucket;
+  file.read((char*)&bucket, sizeof(Bucket<RECORD, TK>));
+  this->n_access++;
+  return bucket;
+}
+template <class RECORD, class TK>
+void ExtendibleHashing<RECORD, TK>::write_data_page(std::fstream& file,
+                                                    Bucket<RECORD, TK> bucket,
+                                                    int index) {
+  file.seekp(index * sizeof(Bucket<RECORD, TK>) + sizeof(int), std::ios::beg);
+  file.write((char*)&bucket, sizeof(Bucket<RECORD, TK>));
+  this->n_access++;
+  file.flush();
+}
+
+template <class RECORD, class TK>
+int ExtendibleHashing<RECORD, TK>::write_new_page(std::fstream& file,
+                                                  Bucket<RECORD, TK>& bucket) {
+  if (this->pos_free_list == -1) {
+    file.seekp(0, std::ios::end);
+    file.write((char*)&bucket, sizeof(Bucket<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+
+    std::streampos pos = file.tellp();
+    std::streamoff offset = pos - std::streamoff(sizeof(int));
+    return (offset / std::streamoff(sizeof(Bucket<RECORD, TK>))) - 1;
+  } else {
+    Bucket<RECORD, TK> temp = read_data_page(file, this->pos_free_list);
+    file.seekp(this->pos_free_list * sizeof(Bucket<RECORD, TK>) + sizeof(int),
+               std::ios::beg);
+    file.write((char*)&bucket, sizeof(Bucket<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+    this->pos_free_list = temp.free_list;
+
+    std::streampos pos = file.tellp();
+    std::streamoff offset = pos - std::streamoff(sizeof(int));
+    return (offset / std::streamoff(sizeof(Bucket<RECORD, TK>))) - 1;
+  }
+}
+
+template <class RECORD, class TK>
+void ExtendibleHashing<RECORD, TK>::re_linked_index(
+    std::fstream& file,
+    Bucket<RECORD, TK>& bucket_1,
+    Bucket<RECORD, TK>& bucket_2,
+    int pointer1,
+    int pointer2) {
+  int sub_j = this->global_depth - bucket_1.local_depth;
+  int limit = pow(2, sub_j);
+
+  std::string bits_bucket =
+      bucket_1.bits.to_string().substr(sub_j, bucket_1.local_depth);
+  std::string bits_new_bucket =
+      bucket_2.bits.to_string().substr(sub_j, bucket_2.local_depth);
+
+  for (int i = 0; i < limit; i++) {
+    std::bitset<GD> i_bit(i);
+    std::string i_str = i_bit.to_string().substr(i_bit.size() - sub_j, sub_j);
+
+    std::string i_str_1 = i_str + bits_bucket;
+    std::string i_str_2 = i_str + bits_new_bucket;
+
+    std::bitset<GD> i_str_bit_1(i_str_1);
+    int index_1 = i_str_bit_1.to_ulong();
+
+    std::bitset<GD> i_str_bit_2(i_str_2);
+    int index_2 = i_str_bit_2.to_ulong();
+
+    file.seekp(index_1 * sizeof(Index_Page_H<RECORD, TK>), std::ios::beg);
+    Index_Page_H<RECORD, TK> idx;
+    idx.pointer = pointer1;
+    file.write((char*)&idx, sizeof(Index_Page_H<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+
+    file.seekp(index_2 * sizeof(Index_Page_H<RECORD, TK>), std::ios::beg);
+    idx.pointer = pointer2;
+    file.write((char*)&idx, sizeof(Index_Page_H<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+  }
+}
+
+template <class RECORD, class TK>
+void ExtendibleHashing<RECORD, TK>::re_linked_index_merge(
+    std::fstream& file,
+    Bucket<RECORD, TK>& bucket_1) {
+
+  Index_Page_H<RECORD, TK> idx1;
+  int index_to_merge = get_index_to_merge(bucket_1);
+  file.seekg(index_to_merge * sizeof(Bucket<RECORD, TK>), std::ios::beg);
+  file.read((char*)&idx1, sizeof(Index_Page_H<RECORD, TK>));
+  this->n_access++;
+  int pointer_be_persist = idx1.pointer;
+
+  int sub_j = this->global_depth - bucket_1.local_depth + 1;
+  int limit = pow(2, sub_j);
+
+  std::string bits_bucket =
+      bucket_1.bits.to_string().substr(sub_j, bucket_1.local_depth - 1);
+
+  Index_Page_H<RECORD, TK> idx;
+  for (int i = 0; i < limit; i++) {
+    std::bitset<GD> i_bit(i);
+    std::string i_str = i_bit.to_string().substr(i_bit.size() - sub_j, sub_j);
+
+    std::string i_str_1 = i_str + bits_bucket;
+
+    std::bitset<GD> i_str_bit_1(i_str_1);
+    int index_1 = i_str_bit_1.to_ulong();
+
+    file.seekp(index_1 * sizeof(Index_Page_H<RECORD, TK>), std::ios::beg);
+    idx.pointer = pointer_be_persist;
+    file.write((char*)&idx, sizeof(Index_Page_H<RECORD, TK>));
+    this->n_access++;
+    file.flush();
+  }
+}
+
+template <class RECORD, class TK>
+int ExtendibleHashing<RECORD, TK>::get_index_to_merge(
+    Bucket<RECORD, TK>& bucket) {
+
+  int sub_j = this->global_depth - bucket.local_depth;
+  int limit = pow(2, sub_j);
+
+  std::string bits_bucket =
+      bucket.bits.to_string().substr(sub_j, bucket.local_depth);
+
+  if (bits_bucket[0] == '0') {
+    bits_bucket[0] = '1';
+
+  } else {
+    bits_bucket[0] = '0';
+  }
+
+  std::bitset<GD> bits_bucket_bit(bits_bucket);
+  int index = bits_bucket_bit.to_ulong();
+
+  return index;
 }
