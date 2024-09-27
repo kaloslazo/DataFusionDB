@@ -271,83 +271,81 @@ vector<SequentialRA> SequentialFileA::range_search(string begin_key, string end_
   SequentialRA record;
 
   File_data.open(filename_data, ios::in | ios::out | ios::binary);
-
   if (!File_data) {
     cerr << "Error opening file!" << endl;
     return records;
   }
 
-  File_data.seekg(0, ios::beg);
-
-  // first record >= begin_key using binary search
-  int left = 0, right, middle;
   File_data.seekg(0, ios::end);
-  right = File_data.tellg() / Record_size - 1;
-
-  int first_pos = -1;
-
-  while (left <= right) {
-    middle = left + (right - left) / 2;
-    File_data.seekg(middle * Record_size, ios::beg);
-    File_data.read(reinterpret_cast<char*>(&record), Record_size);
-
-    if (record.key() >= begin_key) {
-      first_pos = middle; 
-      right = middle - 1;
-    } else {
-      left = middle + 1;
-    }
+  int total_records = File_data.tellg() / Record_size;
+  if (total_records == 0) {
+    File_data.close();
+    return records;
   }
 
-  if (first_pos == -1) first_pos = File_data.tellg() / Record_size - 1;
-
-
-  //last record <= end_key using binary search
-  left = first_pos;
-
-  File_data.seekg(0, ios::end);
-  right = File_data.tellg() / Record_size - 1;
-
-  int last_pos = -1;
-
-  while (left <= right) {
-    middle = left + (right - left) / 2;
-    File_data.seekg(middle * Record_size, ios::beg);
-    File_data.read(reinterpret_cast<char*>(&record), Record_size);
-
-    if (record.key() <= end_key) {
-      last_pos = middle;
-      left = middle + 1;
-    } else {
-      right = middle - 1;
-    }
-  }
-
-  //all records between first_pos and last_pos inclusive
-  if (last_pos != -1) {
-    for (int i = first_pos; i <= last_pos; ++i) {
-      File_data.seekg(i * Record_size, ios::beg);
+  // Si begin_key está vacío, empezamos desde el principio
+  int first_pos = 0;
+  if (!begin_key.empty()) {
+    // Búsqueda binaria para encontrar la primera posición
+    int left = 0, right = total_records - 1;
+    while (left <= right) {
+      int middle = left + (right - left) / 2;
+      File_data.seekg(middle * Record_size, ios::beg);
       File_data.read(reinterpret_cast<char*>(&record), Record_size);
+      if (record.key() >= begin_key) {
+        first_pos = middle;
+        right = middle - 1;
+      } else {
+        left = middle + 1;
+      }
+    }
+  }
+
+  // Si end_key es "~" o está vacío, leemos hasta el final
+  int last_pos = total_records - 1;
+  if (!end_key.empty() && end_key != "~") {
+    // Búsqueda binaria para encontrar la última posición
+    int left = first_pos, right = total_records - 1;
+    while (left <= right) {
+      int middle = left + (right - left) / 2;
+      File_data.seekg(middle * Record_size, ios::beg);
+      File_data.read(reinterpret_cast<char*>(&record), Record_size);
+      if (record.key() <= end_key) {
+        last_pos = middle;
+        left = middle + 1;
+      } else {
+        right = middle - 1;
+      }
+    }
+  }
+
+  // Leer todos los registros entre first_pos y last_pos
+  for (int i = first_pos; i <= last_pos; ++i) {
+    File_data.seekg(i * Record_size, ios::beg);
+    if (File_data.read(reinterpret_cast<char*>(&record), Record_size)) {
       records.push_back(record);
     }
   }
 
   File_data.close();
+
+  // Leer registros del archivo auxiliar
   File_data.open(aux_data, ios::in | ios::out | ios::binary);
-  File_data.seekg(0, ios::beg);
-
-  while (File_data.read((char*) &record, Record_size)) {
-    if (record.key() >= begin_key && record.key() <= end_key) 
-      records.push_back(record);
-
+  if (File_data) {
+    File_data.seekg(0, ios::beg);
+    while (File_data.read(reinterpret_cast<char*>(&record), Record_size)) {
+      if ((begin_key.empty() || record.key() >= begin_key) && 
+        (end_key.empty() || end_key == "~" || record.key() <= end_key)) {
+        records.push_back(record);
+      }
+    }
+    File_data.close();
   }
-
-  File_data.close();
 
   sort(records.begin(), records.end(), compareA);
-
   return records;
 }
+
 SequentialRA SequentialFileA::search(string key){
 
   SequentialRA record;

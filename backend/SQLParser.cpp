@@ -93,6 +93,8 @@ vector<Record*> SQLParser::select_query(const string &query) {
     if (value.front() == '\'' && value.back() == '\'') {
       value = value.substr(1, value.length() - 2);
     }
+    
+    cout << "Executing SELECT query on table: " << table << endl;
 
     if (column.empty()) {  // No WHERE clause
       if (index_type == INDEX_AVL) {
@@ -109,12 +111,16 @@ vector<Record*> SQLParser::select_query(const string &query) {
         }
       } else if (index_type == INDEX_SEQUENTIAL) {
         if (record_type == TYPE_RECORD_A) {
+          cout << "Using SequentialFileA" << endl;
           vector<SequentialRA> all_records = seq_a->range_search("", "~");
+          cout << "Retrieved " << all_records.size() << " records" << endl;
           for (const auto& rec : all_records) {
             result.push_back(new RecordA(rec.to_record()));
           }
         } else if (record_type == TYPE_RECORD_B) {
+          cout << "Using SequentialFileB" << endl;
           vector<SequentialRB> all_records = seq_b->range_search("", "~");
+          cout << "Retrieved " << all_records.size() << " records" << endl;
           for (const auto& rec : all_records) {
             result.push_back(new RecordB(rec.to_record()));
           }
@@ -203,6 +209,8 @@ vector<Record*> SQLParser::select_query(const string &query) {
   } else {
     cerr << "Error: Query syntax is not correct for SELECT" << endl;
   }
+
+  cout << "Returning " << result.size() << " records" << endl;
   return result;
 }
 
