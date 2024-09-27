@@ -35,12 +35,12 @@ private:
   void update_query(const string &query);
   void delete_query(const string &query);
   void index_query(const string &query);
+  void create_index(const string& query);
   Record* create_record(const vector<string>& values);
   void set_record_type(const string& header_csv);
   std::optional<Record*> search_id(const string& id);
   vector<Record*> search_range(const string& id1, const string& id2);
   void create_index_structure();
-  void create_index(const string& query);
   
   vector<Record*> records;
   string filename;

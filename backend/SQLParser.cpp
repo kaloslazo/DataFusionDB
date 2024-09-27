@@ -1,4 +1,5 @@
 #include "SQLParser.hpp"
+#include "ExtendibleHashingFile/ExtendibleRA.hpp"
 #include <regex>
 #include <sstream>
 #include <algorithm>
@@ -33,176 +34,177 @@ vector<Record*> SQLParser::execute_query(const string& query) {
 }
 
 std::optional<Record*> SQLParser::search_id(const std::string& id) {
-    if (index_type == INDEX_AVL) {
-        if (record_type == TYPE_RECORD_A) {
-            RecordA record = avl_a->find(id);
-            if (record.id[0] != '\0') {  // Asumiendo que un id vacío significa que no se encontró
-                return new RecordA(record);
-            }
-        } else if (record_type == TYPE_RECORD_B) {
-            RecordB record = avl_b->find(id);
-            if (record.vin[0] != '\0') {  // Asumiendo que un vin vacío significa que no se encontró
-                return new RecordB(record);
-            }
-        }
-    } else if (index_type == INDEX_SEQUENTIAL) {
-        if (record_type == TYPE_RECORD_A) {
-            SequentialRA record = seq_a->search(id);
-            if (record.id[0] != '\0') {
-                return new RecordA(record.to_record());
-            }
-        } else if (record_type == TYPE_RECORD_B) {
-            SequentialRB record = seq_b->search(id);
-            if (record.vin[0] != '\0') {
-                return new RecordB(record.to_record());
-            }
-        }
-    } else if (index_type == INDEX_HASH) {
-        if (record_type == TYPE_RECORD_A) {
-            auto record = eh_a->Search(id);
-            if (record) {
-                return new RecordA(record->to_record());
-            }
-        } else if (record_type == TYPE_RECORD_B) {
-            auto record = eh_b->Search(id);
-            if (record) {
-                return new RecordB(record->to_record());
-            }
-        }
+  if (index_type == INDEX_AVL) {
+    if (record_type == TYPE_RECORD_A) {
+      RecordA record = avl_a->find(id);
+      if (record.id[0] != '\0') {  // Asumiendo que un id vacío significa que no se encontró
+        return new RecordA(record);
+      }
+    } else if (record_type == TYPE_RECORD_B) {
+      RecordB record = avl_b->find(id);
+      if (record.vin[0] != '\0') {  // Asumiendo que un vin vacío significa que no se encontró
+        return new RecordB(record);
+      }
     }
-    return std::nullopt;
+  } else if (index_type == INDEX_SEQUENTIAL) {
+    if (record_type == TYPE_RECORD_A) {
+      SequentialRA record = seq_a->search(id);
+      if (record.id[0] != '\0') {
+        return new RecordA(record.to_record());
+      }
+    } else if (record_type == TYPE_RECORD_B) {
+      SequentialRB record = seq_b->search(id);
+      if (record.vin[0] != '\0') {
+        return new RecordB(record.to_record());
+      }
+    }
+  } else if (index_type == INDEX_HASH) {
+    if (record_type == TYPE_RECORD_A) {
+      vector<EHRecordA> records = eh_a->search(id);
+      if (!records.empty()) {
+        return new RecordA(records[0].to_record());
+      }
+    } else if (record_type == TYPE_RECORD_B) {
+      vector<EHRecordB> records = eh_b->search(id);      
+      if (!records.empty()) {
+        return new RecordB(records[0].to_record());
+      }
+    }
+  }
+  return std::nullopt;
 }
 
 // Función para SELECT
 vector<Record*> SQLParser::select_query(const string &query) {
-    vector<Record*> result;
-    if (!table_created) {
-        cerr << "Error: Table not created" << endl;
-        return result;
-    }
-
-    regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(\w+)\s*=\s*('[^']*'|\d+))?)", regex::icase);
-    smatch match;
-
-    if (regex_match(query, match, select_regex)) {
-        string table = match[1];
-        string column = match[2];
-        string value = match[3];
-
-        // Remover comillas simples si existen
-        if (value.front() == '\'' && value.back() == '\'') {
-            value = value.substr(1, value.length() - 2);
-        }
-
-        if (column.empty()) {  // No WHERE clause
-            if (index_type == INDEX_AVL) {
-                if (record_type == TYPE_RECORD_A) {
-                    vector<AvlRA> all_records = avl_a->inorder();
-                    for (const auto& rec : all_records) {
-                        result.push_back(new RecordA(rec.to_record()));
-                    }
-                } else if (record_type == TYPE_RECORD_B) {
-                    vector<AvlRB> all_records = avl_b->inorder();
-                    for (const auto& rec : all_records) {
-                        result.push_back(new RecordB(rec.to_record()));
-                    }
-                }
-            } else if (index_type == INDEX_SEQUENTIAL) {
-                if (record_type == TYPE_RECORD_A) {
-                    vector<SequentialRA> all_records = seq_a->range_search("", "~");
-                    for (const auto& rec : all_records) {
-                        result.push_back(new RecordA(rec.to_record()));
-                    }
-                } else if (record_type == TYPE_RECORD_B) {
-                    vector<SequentialRB> all_records = seq_b->range_search("", "~");
-                    for (const auto& rec : all_records) {
-                        result.push_back(new RecordB(rec.to_record()));
-                    }
-                }
-            } else if (index_type == INDEX_HASH) {
-                cerr << "Error: Full table scan not supported for Hash indexes" << endl;
-            }
-        } else {  // WHERE clause
-            if (index_type == INDEX_AVL || index_type == INDEX_SEQUENTIAL) {
-                if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
-                    auto record = search_id(value);
-                    if (record) {
-                        result.push_back(record.value());
-                    }
-                } else {
-                    // Linear search for other columns
-                    vector<Record*> all_records;
-                    if (index_type == INDEX_AVL) {
-                        if (record_type == TYPE_RECORD_A) {
-                            vector<AvlRA> avl_records = avl_a->inorder();
-                            for (const auto& rec : avl_records) {
-                                all_records.push_back(new RecordA(rec.to_record()));
-                            }
-                        } else if (record_type == TYPE_RECORD_B) {
-                            vector<AvlRB> avl_records = avl_b->inorder();
-                            for (const auto& rec : avl_records) {
-                                all_records.push_back(new RecordB(rec.to_record()));
-                            }
-                        }
-                    } else if (index_type == INDEX_SEQUENTIAL) {
-                        if (record_type == TYPE_RECORD_A) {
-                            vector<SequentialRA> seq_records = seq_a->range_search("", "~");
-                            for (const auto& rec : seq_records) {
-                                all_records.push_back(new RecordA(rec.to_record()));
-                            }
-                        } else if (record_type == TYPE_RECORD_B) {
-                            vector<SequentialRB> seq_records = seq_b->range_search("", "~");
-                            for (const auto& rec : seq_records) {
-                                all_records.push_back(new RecordB(rec.to_record()));
-                            }
-                        }
-                    }
-
-                    for (const auto& rec : all_records) {
-                        if (record_type == TYPE_RECORD_A) {
-                            RecordA* record_a = static_cast<RecordA*>(rec);
-                            if ((column == "name" && record_a->name == value) ||
-                                (column == "album" && record_a->album == value) ||
-                                (column == "album_id" && record_a->album_id == value) ||
-                                (column == "artists" && record_a->artists == value)) {
-                                result.push_back(rec);
-                            } else {
-                                delete rec;
-                            }
-                        } else if (record_type == TYPE_RECORD_B) {
-                            RecordB* record_b = static_cast<RecordB*>(rec);
-                            if ((column == "year" && to_string(record_b->year) == value) ||
-                                (column == "make" && record_b->make == value) ||
-                                (column == "model" && record_b->model == value)) {
-                                result.push_back(rec);
-                            } else {
-                                delete rec;
-                            }
-                        }
-                    }
-                }
-            } else if (index_type == INDEX_HASH) {
-                if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
-                    if (record_type == TYPE_RECORD_A) {
-                        auto record = eh_a->Search(value);
-                        if (record) {
-                            result.push_back(new RecordA(record->to_record()));
-                        }
-                    } else if (record_type == TYPE_RECORD_B) {
-                        auto record = eh_b->Search(value);
-                        if (record) {
-                            result.push_back(new RecordB(record->to_record()));
-                        }
-                    }
-                } else {
-                    cerr << "Error: Hash index only supports searching by primary key" << endl;
-                }
-            }
-        }
-    } else {
-        cerr << "Error: Query syntax is not correct for SELECT" << endl;
-    }
+  vector<Record*> result;
+  if (!table_created) {
+    cerr << "Error: Table not created" << endl;
     return result;
+  }
+
+  regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(\w+)\s*=\s*('[^']*'|\d+))?)", regex::icase);
+  smatch match;
+
+  if (regex_match(query, match, select_regex)) {
+    string table = match[1];
+    string column = match[2];
+    string value = match[3];
+
+    // Remover comillas simples si existen
+    if (value.front() == '\'' && value.back() == '\'') {
+      value = value.substr(1, value.length() - 2);
+    }
+
+    if (column.empty()) {  // No WHERE clause
+      if (index_type == INDEX_AVL) {
+        if (record_type == TYPE_RECORD_A) {
+          vector<AvlRA> all_records = avl_a->inorder();
+          for (const auto& rec : all_records) {
+            result.push_back(new RecordA(rec.to_record()));
+          }
+        } else if (record_type == TYPE_RECORD_B) {
+          vector<AvlRB> all_records = avl_b->inorder();
+          for (const auto& rec : all_records) {
+            result.push_back(new RecordB(rec.to_record()));
+          }
+        }
+      } else if (index_type == INDEX_SEQUENTIAL) {
+        if (record_type == TYPE_RECORD_A) {
+          vector<SequentialRA> all_records = seq_a->range_search("", "~");
+          for (const auto& rec : all_records) {
+            result.push_back(new RecordA(rec.to_record()));
+          }
+        } else if (record_type == TYPE_RECORD_B) {
+          vector<SequentialRB> all_records = seq_b->range_search("", "~");
+          for (const auto& rec : all_records) {
+            result.push_back(new RecordB(rec.to_record()));
+          }
+        }
+      } else if (index_type == INDEX_HASH) {
+        cerr << "Error: Full table scan not supported for Hash indexes" << endl;
+      }
+    } else {  // WHERE clause
+      if (index_type == INDEX_AVL || index_type == INDEX_SEQUENTIAL) {
+        if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
+          auto record = search_id(value);
+          if (record) {
+            result.push_back(record.value());
+          }
+        } else {
+          // Linear search for other columns
+          vector<Record*> all_records;
+          if (index_type == INDEX_AVL) {
+            if (record_type == TYPE_RECORD_A) {
+              vector<AvlRA> avl_records = avl_a->inorder();
+              for (const auto& rec : avl_records) {
+                all_records.push_back(new RecordA(rec.to_record()));
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              vector<AvlRB> avl_records = avl_b->inorder();
+              for (const auto& rec : avl_records) {
+                all_records.push_back(new RecordB(rec.to_record()));
+              }
+            }
+          } else if (index_type == INDEX_SEQUENTIAL) {
+            if (record_type == TYPE_RECORD_A) {
+              vector<SequentialRA> seq_records = seq_a->range_search("", "~");
+              for (const auto& rec : seq_records) {
+                all_records.push_back(new RecordA(rec.to_record()));
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              vector<SequentialRB> seq_records = seq_b->range_search("", "~");
+              for (const auto& rec : seq_records) {
+                all_records.push_back(new RecordB(rec.to_record()));
+              }
+            }
+          }
+
+          for (const auto& rec : all_records) {
+            if (record_type == TYPE_RECORD_A) {
+              RecordA* record_a = static_cast<RecordA*>(rec);
+              if ((column == "name" && record_a->name == value) ||
+                (column == "album" && record_a->album == value) ||
+                (column == "album_id" && record_a->album_id == value) ||
+                (column == "artists" && record_a->artists == value)) {
+                result.push_back(rec);
+              } else {
+                delete rec;
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              RecordB* record_b = static_cast<RecordB*>(rec);
+              if ((column == "year" && to_string(record_b->year) == value) ||
+                (column == "make" && record_b->make == value) ||
+                (column == "model" && record_b->model == value)) {
+                result.push_back(rec);
+              } else {
+                delete rec;
+              }
+            }
+          }
+        }
+      } 
+      else if (index_type == INDEX_HASH) {
+        if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
+          if (record_type == TYPE_RECORD_A) {
+            vector<EHRecordA> records = eh_a->search(value);
+            if (!records.empty()) {
+              result.push_back(new RecordA(records[0].to_record()));
+            }
+          } else if (record_type == TYPE_RECORD_B) {
+            vector<EHRecordB> records = eh_b->search(value);
+            if (!records.empty()) {
+              result.push_back(new RecordB(records[0].to_record()));
+            }
+          }
+        } else {
+          cerr << "Error: Hash index only supports searching by primary key" << endl;
+        }
+      }
+    }
+  } else {
+    cerr << "Error: Query syntax is not correct for SELECT" << endl;
+  }
+  return result;
 }
 
 // Función para CREATE TABLE
@@ -239,13 +241,11 @@ void SQLParser::create_table(const string &query) {
       }
     } else if (index_type == INDEX_HASH) {
       if (record_type == TYPE_RECORD_A) {
-        eh_a = new ExtendibleHashing<EHRecordA, string>(3, 4); // Ajusta estos valores según sea necesario
-        eh_a->Create(filename + ".data", filename + ".buckets");
-        eh_a->Load_csv(filename);
+        eh_a = new ExtendibleHashing<EHRecordA, string>(filename);
+        eh_a->loadCSV(filename);
       } else if (record_type == TYPE_RECORD_B) {
-        eh_b = new ExtendibleHashing<EHRecordB, string>(3, 4); // Ajusta estos valores según sea necesario
-        eh_b->Create(filename + ".data", filename + ".buckets");
-        eh_b->Load_csv(filename);
+        eh_b = new ExtendibleHashing<EHRecordB, string>(filename); 
+        eh_b->loadCSV(filename);
       }
     }
 
@@ -293,9 +293,9 @@ void SQLParser::insert_query(const string &query) {
       }
     } else if (index_type == INDEX_HASH) {
       if (record_type == TYPE_RECORD_A) {
-        eh_a->Insert(*static_cast<RecordA*>(new_record));
+        eh_a->add(*static_cast<EHRecordA*>(new_record));
       } else if (record_type == TYPE_RECORD_B) {
-        eh_b->Insert(*static_cast<RecordB*>(new_record));
+        eh_b->add(*static_cast<EHRecordB*>(new_record));
       }
     }
 
@@ -335,9 +335,11 @@ void SQLParser::delete_query(const string &query) {
       }
       success = true;
     } else if (index_type == INDEX_HASH) {
-      // La implementación actual de ExtendibleHashing no tiene un método remove
-      cerr << "Error: DELETE not implemented for Hash index" << endl;
-      return;
+      if (record_type == TYPE_RECORD_A) {
+        success = eh_a->remove(where_value);
+      } else if (record_type == TYPE_RECORD_B) {
+        success = eh_a->remove(where_value);
+      }
     }
 
     if (success) {
@@ -350,7 +352,6 @@ void SQLParser::delete_query(const string &query) {
   }
 }
 
-// Función para UPDATE (incompleta, dependerá de cómo manejas la actualización)
 void SQLParser::update_query(const string &query) {
   cerr << "Error: UPDATE query not implemented" << endl;
 }
@@ -362,13 +363,21 @@ Record* SQLParser::create_record(const vector<string>& values) {
       cerr << "Error: Invalid number of values for RecordA" << endl;
       return nullptr;
     }
-    return new RecordA(values[0], values[1], values[2], values[3], values[4]);
+    if (index_type == INDEX_HASH) {
+      return new EHRecordA(values[0].c_str(), values[1].c_str(), values[2].c_str(), values[3].c_str(), values[4].c_str());
+    } else {
+      return new RecordA(values[0], values[1], values[2], values[3], values[4]);
+    }
   } else if (record_type == TYPE_RECORD_B) {
     if (values.size() != 4) {
       cerr << "Error: Invalid number of values for RecordB" << endl;
       return nullptr;
     }
-    return new RecordB(stoi(values[0]), values[1], values[2], values[3]);
+    if (index_type == INDEX_HASH) {
+      return new EHRecordB(stoi(values[0]), values[1].c_str(), values[2].c_str(), values[3].c_str());
+    } else {
+      return new RecordB(stoi(values[0]), values[1], values[2], values[3]);
+    }
   }
   return nullptr;
 }
@@ -436,13 +445,11 @@ void SQLParser::create_index_structure() {
     }
   } else if (index_type == INDEX_HASH) {
     if (record_type == TYPE_RECORD_A) {
-      eh_a = new ExtendibleHashing<EHRecordA, string>(3, 4);
-      eh_a->Create(filename + ".data", filename + ".buckets");
-      eh_a->Load_csv(filename);
+      eh_a = new ExtendibleHashing<EHRecordA, string>(filename);
+      eh_a->loadCSV(filename);
     } else if (record_type == TYPE_RECORD_B) {
-      eh_b = new ExtendibleHashing<EHRecordB, string>(3, 4);
-      eh_b->Create(filename + ".data", filename + ".buckets");
-      eh_b->Load_csv(filename);
+      eh_b = new ExtendibleHashing<EHRecordB, string>(filename);
+      eh_b->loadCSV(filename);
     }
   }
 }

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 
 using namespace std;
 
@@ -13,7 +14,7 @@ class Record {
 public:
   bool empty = true;
   virtual ~Record() = default;
-  virtual string key() = 0;
+  virtual string key() const = 0;
   virtual void Print() = 0;
 };
 
@@ -43,7 +44,7 @@ public:
     return *this;
   }
 
-  string key() override {
+  string key() const override {
     return id;
   };
 
@@ -81,7 +82,7 @@ public:
     return *this;
   }
 
-  string key() override {
+  string key() const override {
     return vin;
   };
 

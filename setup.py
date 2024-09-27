@@ -19,6 +19,7 @@ ext_modules = [
             "backend/AvlFile/AvlRB.cpp",
             "backend/SequentialFile/SequentialFileRA.cpp",
             "backend/SequentialFile/SequentialFileRB.cpp",
+            "backend/ExtendibleHashingFile/ExtendibleHashing.cpp",
         ],
         include_dirs=[
             pyb11_include,
@@ -26,6 +27,7 @@ ext_modules = [
             "backend",
             "backend/AvlFile",
             "backend/SequentialFile",
+            "backend/ExtendibleHashingFile",
         ],
         language = "c++",
         extra_compile_args = ["-std=c++17", "-g"],
