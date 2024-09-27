@@ -5,7 +5,7 @@ import pandas as pd
 delimiter = "\n" + "-" * 50
 
 # data analysis for spotify
-df = pd.read_csv("./backend/data/tracks_features.csv", encoding="ISO-8859-1")
+df = pd.read_csv("./data/tracks_features.csv", encoding="ISO-8859-1")
 
 print(delimiter)
 print("Dataframe information:")
@@ -54,4 +54,4 @@ print(df.sample(20))
 
 # guardar el dataframe limpio
 sample_df = df.sample(100000) #like the other dataset
-sample_df.to_csv("./backend/data/spotify_data_clean.csv", index=False)
+sample_df.to_csv("./data/spotify_data_clean.csv", index=False)

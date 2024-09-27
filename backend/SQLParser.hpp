@@ -3,18 +3,23 @@
 
 #include <string>
 #include <vector>
-
+#include <optional>
 #include "Record.hpp"
-#include "AVLFileA.hpp"
-#include "AVLFileB.hpp"
+#include "AvlFile/AvlFileRA.hpp"
+#include "AvlFile/AvlFileRB.hpp"
+#include "SequentialFile/SequentialFileRA.hpp"
+#include "SequentialFile/SequentialFileRB.hpp"
+#include "ExtendibleHashingFile/ExtendibleHashing.hpp"
+#include "ExtendibleHashingFile/ExtendibleRA.hpp"
+#include "ExtendibleHashingFile/ExtendibleRB.hpp"
 
 using namespace std;
 
 enum IndexType {
   INDEX_UNKNOWN,
   INDEX_AVL,
-  INDEX_EXTENDIBLE,
-  INDEX_SEQUENTIAL
+  INDEX_SEQUENTIAL,
+  INDEX_HASH
 };
 
 enum RecordType {
@@ -29,29 +34,36 @@ private:
   void insert_query(const string &query);
   void update_query(const string &query);
   void delete_query(const string &query);
-
-  // handle the record type
+  void index_query(const string &query);
   Record* create_record(const vector<string>& values);
   void set_record_type(const string& header_csv);
-
-  Record* search_id(const string& id);
+  std::optional<Record*> search_id(const string& id);
   vector<Record*> search_range(const string& id1, const string& id2);
-
+  void create_index_structure();
+  void create_index(const string& query);
+  
   vector<Record*> records;
   string filename;
   string table_name;
   bool table_created = false;
-  
   RecordType record_type;
   IndexType index_type;
 
-  AVLFileA<char[23]>* avl_a;
-  AVLFileB<char[18]>* avl_b;
+  // AVL structures
+  AVLFileRA<string>* avl_a;
+  AVLFileRB<string>* avl_b;
+
+  // Sequential File structures
+  SequentialFileA* seq_a;
+  SequentialFileB* seq_b;
+
+  // Extendible Hashing structures
+  ExtendibleHashing<EHRecordA, std::string>* eh_a;
+  ExtendibleHashing<EHRecordB, std::string>* eh_b;
 
 public:
   SQLParser();
   ~SQLParser();
-
   vector<Record*> execute_query(const string& query);
 };
 

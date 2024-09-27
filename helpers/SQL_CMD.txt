@@ -1,0 +1,48 @@
+---------------------------------------------------- INSTANCIAR BASE DE DATOS
+CREATE TABLE songs FROM FILE "./data/spotify_data_clean.csv"
+
+---------------------------------------------------- HASH
+CREATE INDEX idx_songs ON songs USING HASH
+
+INSERT INTO songs VALUES ('696969', 'Blinding Lights', 'After Hours', 'ALB002', 'The Weeknd')
+
+SELECT * FROM songs
+SELECT * FROM songs WHERE id = '1'
+SELECT * FROM songs WHERE id = '696969'
+
+DELETE FROM songs WHERE id = '2'
+SELECT * FROM songs
+
+-- Esto debería dar un error, ya que Hash no soporta búsquedas por rango
+SELECT * FROM songs WHERE id >= '1' AND id <= '696969'
+
+-- Esto también debería dar un error, ya que Hash solo soporta búsquedas por clave primaria
+SELECT * FROM songs WHERE name = 'Shape of You'
+
+---------------------------------------------------- AVL
+CREATE INDEX idx_songs ON songs USING AVL
+
+INSERT INTO songs VALUES ('9191991', 'Watermelon Sugar', 'Fine Line', 'ALB004', 'Harry Styles')
+
+SELECT * FROM songs
+SELECT * FROM songs WHERE id = '3'
+SELECT * FROM songs WHERE id >= '1' AND id <= '4'
+
+SELECT * FROM songs WHERE name = 'Watermelon Sugar'
+
+DELETE FROM songs WHERE id = '9191991'
+SELECT * FROM songs
+
+---------------------------------------------------- SEQUENTIAL
+CREATE INDEX idx_songs ON songs USING SEQUENTIAL
+
+INSERT INTO songs VALUES ('7443958', 'Circles', 'Hollywood's Bleeding', 'ALB007', 'Post Malone')
+
+SELECT * FROM songs
+SELECT * FROM songs WHERE id = '7443958'
+SELECT * FROM songs WHERE id >= '3' AND id <= '6'
+
+SELECT * FROM songs WHERE album = 'After Hours'
+
+DELETE FROM songs WHERE id = '4'
+SELECT * FROM songs
