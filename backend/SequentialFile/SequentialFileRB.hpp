@@ -34,7 +34,7 @@ public:
   void description();
   void create_file(vector<SequentialRB>&records);
 
-  vector<SequentialRB> read_from_csvB(const string &filename);
+  vector<SequentialRB> read_csv(string filename);
 };
 
 #endif // SEQUENTIALFILEB_HPP

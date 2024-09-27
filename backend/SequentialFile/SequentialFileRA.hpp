@@ -32,7 +32,7 @@ public:
   void description();
   void create_file(vector<SequentialRA> &records);
 
-  vector<SequentialRA> read_from_csvA(const std::string& filename);
+  vector<SequentialRA> read_csv(string filename);
 };
 
 #endif // SEQUENTIALFILEA_HPP

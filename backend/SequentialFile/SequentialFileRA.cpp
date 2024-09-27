@@ -7,31 +7,40 @@
 #include <string.h>
 
 #include "SequentialRA.hpp"
+#include "SequentialFileRA.hpp"
 using namespace std;
 
-class SequentialFileA {
-  string filename_data;
-  string aux_data;
-  fstream File_data;
-  int Record_size;
-  int aux_max_size;
-
-  void merge();
-  void insert_aux(SequentialRA record);
-
-public:
-  SequentialFileA(string filename_data, string aux_data, int record_size);
-  ~SequentialFileA();
-  int get_num_records(string name);
-  int total_records();    
-  void insert(SequentialRA record);
-  void remove_record(string key);
-  vector<SequentialRA> range_search(string begin_key, string end_key);
-  SequentialRA search(string key);
-  void show_records(string name, int max_records);
-  void destroy();
-  void description();
-  void create_file(vector<SequentialRA>&records);
+vector<SequentialRA> SequentialFileA::read_csv(string filename) {
+  std::vector<SequentialRA> records;
+  std::ifstream file(filename);
+  std::string line;
+  bool header = true;
+  while (std::getline(file, line)) {
+    if (header) {
+      header = false;
+      continue;
+    }
+    std::istringstream line_stream(line);
+    SequentialRA record;
+    std::string id, name, album, album_id, artists;
+    std::getline(line_stream, id, ',');
+    std::getline(line_stream, name, ',');
+    std::getline(line_stream, album, ',');
+                 std::getline(line_stream, album_id, ',');
+                              std::getline(line_stream, artists, ',');
+                                           strncpy(record.id, id.c_str(), sizeof(record.id) - 1);
+    record.id[sizeof(record.id) - 1] = '\0';
+    strncpy(record.name, name.c_str(), sizeof(record.name) - 1);
+    record.name[sizeof(record.name) - 1] = '\0';
+    strncpy(record.album, album.c_str(), sizeof(record.album) - 1);
+    record.album[sizeof(record.album) - 1] = '\0';
+    strncpy(record.album_id, album_id.c_str(), sizeof(record.album_id) - 1);
+    record.album_id[sizeof(record.album_id) - 1] = '\0';
+    strncpy(record.artists, artists.c_str(), sizeof(record.artists) - 1);
+    record.artists[sizeof(record.artists) - 1] = '\0';
+    records.push_back(record);
+  };
+  return records;
 };
 
 SequentialFileA::SequentialFileA(string filename_data, string aux_data, int record_size){
@@ -386,39 +395,6 @@ SequentialRA SequentialFileA::search(string key){
 
   cout << "Record not found" << endl;
   return record;
-};
-
-vector<SequentialRA> read_from_csvA(const std::string& filename) {
-  std::vector<SequentialRA> records;
-  std::ifstream file(filename);
-  std::string line;
-  bool header = true;
-  while (std::getline(file, line)) {
-    if (header) {
-      header = false;
-      continue;
-    }
-    std::istringstream line_stream(line);
-    SequentialRA record;
-    std::string id, name, album, album_id, artists;
-    std::getline(line_stream, id, ',');
-    std::getline(line_stream, name, ',');
-    std::getline(line_stream, album, ',');
-                 std::getline(line_stream, album_id, ',');
-                              std::getline(line_stream, artists, ',');
-                                           strncpy(record.id, id.c_str(), sizeof(record.id) - 1);
-    record.id[sizeof(record.id) - 1] = '\0';
-    strncpy(record.name, name.c_str(), sizeof(record.name) - 1);
-    record.name[sizeof(record.name) - 1] = '\0';
-    strncpy(record.album, album.c_str(), sizeof(record.album) - 1);
-    record.album[sizeof(record.album) - 1] = '\0';
-    strncpy(record.album_id, album_id.c_str(), sizeof(record.album_id) - 1);
-    record.album_id[sizeof(record.album_id) - 1] = '\0';
-    strncpy(record.artists, artists.c_str(), sizeof(record.artists) - 1);
-    record.artists[sizeof(record.artists) - 1] = '\0';
-    records.push_back(record);
-  };
-  return records;
 };
 
 void SequentialFileA::create_file(vector<SequentialRA>& records){

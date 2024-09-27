@@ -235,11 +235,11 @@ void SQLParser::create_table(const string &query) {
     } else if (index_type == INDEX_SEQUENTIAL) {
       if (record_type == TYPE_RECORD_A) {
         seq_a = new SequentialFileA(filename, filename + ".aux", sizeof(SequentialRA));
-        auto dataA = seq_a->read_from_csvA(filename);
+        auto dataA = seq_a->read_csv(string(filename));
         seq_a->create_file(dataA);
       } else if (record_type == TYPE_RECORD_B) {
         seq_b = new SequentialFileB(filename, filename + ".aux", sizeof(SequentialRB));
-        auto dataB = seq_b->read_from_csvB(filename);
+        auto dataB = seq_b->read_csv(string(filename));
         seq_b->create_file(dataB);
       }
     } else if (index_type == INDEX_HASH) {

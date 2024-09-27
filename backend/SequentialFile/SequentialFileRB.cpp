@@ -4,6 +4,39 @@
 #include "SequentialRB.hpp"
 using namespace std;
 
+vector<SequentialRB> SequentialFileB::read_csv(string filename) {
+  vector<SequentialRB> records;
+  ifstream file(filename);
+  string line;
+  bool header = true;
+  while (getline(file, line)) {
+    if (header) {
+      header = false;
+      continue;
+    }
+    auto line_stream = stringstream(line);
+    //year,make,model,vin
+    SequentialRB record;
+    string year, make, model, vin;
+    getline(line_stream, year, ',');
+    getline(line_stream, make, ',');
+    getline(line_stream, model, ',');
+    getline(line_stream, vin, ',');
+    record.year = stoi(year);
+    strncpy(record.make, make.c_str(), sizeof(record.make));
+    record.make[sizeof(record.make) - 1] = '\0';
+    strncpy(record.model, model.c_str(), sizeof(record.model));
+    record.model[sizeof(record.model) - 1] = '\0';
+    strncpy(record.vin, vin.c_str(), sizeof(record.vin));
+    record.vin[sizeof(record.vin) - 1] = '\0';
+    records.push_back(record);
+
+  }
+
+  return records;
+};
+
+
 SequentialFileB::SequentialFileB(string filename_data, string aux_data, int record_size){
   this->filename_data = filename_data;
   this->aux_data = aux_data;
@@ -356,38 +389,6 @@ SequentialRB SequentialFileB::search(string key){
   return record;
 
 
-};
-
-vector<SequentialRB> SequentialFileB::read_from_csvB(const string &filename) {
-  vector<SequentialRB> records;
-  ifstream file(filename);
-  string line;
-  bool header = true;
-  while (getline(file, line)) {
-    if (header) {
-      header = false;
-      continue;
-    }
-    auto line_stream = stringstream(line);
-    //year,make,model,vin
-    SequentialRB record;
-    string year, make, model, vin;
-    getline(line_stream, year, ',');
-    getline(line_stream, make, ',');
-    getline(line_stream, model, ',');
-    getline(line_stream, vin, ',');
-    record.year = stoi(year);
-    strncpy(record.make, make.c_str(), sizeof(record.make));
-    record.make[sizeof(record.make) - 1] = '\0';
-    strncpy(record.model, model.c_str(), sizeof(record.model));
-    record.model[sizeof(record.model) - 1] = '\0';
-    strncpy(record.vin, vin.c_str(), sizeof(record.vin));
-    record.vin[sizeof(record.vin) - 1] = '\0';
-    records.push_back(record);
-
-  }
-
-  return records;
 };
 
 void SequentialFileB::create_file(vector<SequentialRB>& records){
