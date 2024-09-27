@@ -1,5 +1,5 @@
-#include <cstring>
 #include "AvlRA.hpp"
+#include <cstring>
 
 AvlRA::AvlRA() {
   memset(id, 0, sizeof(id));
@@ -13,20 +13,25 @@ AvlRA::AvlRA() {
 };
 
 AvlRA::AvlRA(const RecordA& record) {
-  strncpy(id, record.id.c_str(), sizeof(id) - 1);id[sizeof(id) - 1] = '\0';
-  strncpy(name, record.name.c_str(), sizeof(name) - 1);name[sizeof(name) - 1] = '\0';
-  strncpy(album, record.album.c_str(), sizeof(album) - 1);album[sizeof(album) - 1] = '\0';
-  strncpy(album_id, record.album_id.c_str(), sizeof(album_id) - 1);album_id[sizeof(album_id) - 1] = '\0';
-  strncpy(artists, record.artists.c_str(), sizeof(artists) - 1);artists[sizeof(artists) - 1] = '\0';
+  strncpy(this->id, record.id.c_str(), sizeof(this->id) - 1);
+  this->id[sizeof(this->id) - 1] = '\0';
+  strncpy(this->name, record.name.c_str(), sizeof(this->name) - 1);
+  this->name[sizeof(this->name) - 1] = '\0';
+  strncpy(this->album, record.album.c_str(), sizeof(this->album) - 1);
+  this->album[sizeof(this->album) - 1] = '\0';
+  strncpy(this->album_id, record.album_id.c_str(), sizeof(this->album_id) - 1);
+  this->album_id[sizeof(this->album_id) - 1] = '\0';
+  strncpy(this->artists, record.artists.c_str(), sizeof(this->artists) - 1);
+  this->artists[sizeof(this->artists) - 1] = '\0';
 };
 
 RecordA AvlRA::to_record() const {
   RecordA record;
-  record.id = string(id, 23);
-  record.name = string(name, 521);
-  record.album = string(album, 244);
-  record.album_id = string(album_id, 23);
-  record.artists = string(artists, 1124);
+  record.id = id;
+  record.name = name;
+  record.album = album;
+  record.album_id = album_id;
+  record.artists = artists;
   record.empty = false;
   return record;
 };

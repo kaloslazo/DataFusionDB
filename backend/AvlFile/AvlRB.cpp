@@ -1,5 +1,5 @@
-#include <cstring>
 #include "AvlRB.hpp"
+#include <cstring>
 
 AvlRB::AvlRB() {
   left = -1;
@@ -13,17 +13,20 @@ AvlRB::AvlRB() {
 
 AvlRB::AvlRB(const RecordB& record) {
   year = record.year;
-  strncpy(make, record.make.c_str(), sizeof(make) - 1);make[sizeof(make) - 1] = '\0';
-  strncpy(model, record.model.c_str(), sizeof(model) - 1);model[sizeof(model) - 1] = '\0';
-  strncpy(vin, record.vin.c_str(), sizeof(vin) - 1);vin[sizeof(vin) - 1] = '\0';
+  strncpy(this->make, record.make.c_str(), sizeof(make) - 1);
+  make[sizeof(make) - 1] = '\0';
+  strncpy(this->model, record.model.c_str(), sizeof(model) - 1);
+  model[sizeof(model) - 1] = '\0';
+  strncpy(this->vin, record.vin.c_str(), sizeof(vin) - 1);
+  vin[sizeof(vin) - 1] = '\0';
 };
 
 RecordB AvlRB::to_record() const {
   RecordB record;
   record.year = year;
-  record.make = string(make, 30);
-  record.model = string(model, 50);
-  record.vin = string(vin, 18);
+  record.make = make;
+  record.model = model;
+  record.vin = vin;
   record.empty = false;
   return record;
 };
