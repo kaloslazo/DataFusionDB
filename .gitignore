@@ -1,8 +1,15 @@
 # archivos de compilacion
+build/
 *.o
 *.so
 *.pyd
-build/
+*.csv.aux
+*.csv.buckets
+*.csv.data
+*.aux
+*.log
+*.out
+*.dat
 
 # archivos de entorno
 *.env
