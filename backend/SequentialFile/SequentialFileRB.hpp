@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SEQUENTIALFILEB_HPP
+#define SEQUENTIALFILEB_HPP
 
 #include <fstream>
 #include <string>
@@ -33,5 +34,7 @@ public:
   void description();
   void create_file(vector<SequentialRB>&records);
 
-  static vector<SequentialRB> read_from_csvB(const string &filename);
+  vector<SequentialRB> read_from_csvB(const string &filename);
 };
+
+#endif // SEQUENTIALFILEB_HPP

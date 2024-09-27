@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SEQUENTIALFILEA_HPP
+#define SEQUENTIALFILEA_HPP
 
 #include <fstream>
 #include <string>
@@ -31,5 +32,7 @@ public:
   void description();
   void create_file(vector<SequentialRA> &records);
 
-  static vector<SequentialRA> read_from_csvA(const std::string& filename);
+  vector<SequentialRA> read_from_csvA(const std::string& filename);
 };
+
+#endif // SEQUENTIALFILEA_HPP

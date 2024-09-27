@@ -1,4 +1,6 @@
-#pragma once
+#ifndef SEQUENTIAL_RB_HPP
+#define SEQUENTIAL_RB_HPP
+
 #include <cstring>
 #include <iostream>
 #include "../Record.hpp"
@@ -42,3 +44,5 @@ struct SequentialRB {
       return record;
   }
 };
+
+#endif // SEQUENTIAL_RB_HPP
