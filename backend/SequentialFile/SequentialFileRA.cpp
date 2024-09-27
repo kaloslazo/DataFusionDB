@@ -388,39 +388,36 @@ SequentialRA SequentialFileA::search(string key){
   return record;
 };
 
-vector<SequentialRA> read_from_csvA(string filename){
-  vector<SequentialRA> records;
-  ifstream file(filename);
-  string line;
+vector<SequentialRA> read_from_csvA(const std::string& filename) {
+  std::vector<SequentialRA> records;
+  std::ifstream file(filename);
+  std::string line;
   bool header = true;
-  while (getline(file, line)) {
+  while (std::getline(file, line)) {
     if (header) {
       header = false;
       continue;
     }
-    auto line_stream = stringstream(line);
-    //id,name,album,album_id,artists
+    std::istringstream line_stream(line);
     SequentialRA record;
-    string id, name, album, album_id, artists;
-    getline(line_stream, id, ',');
-    getline(line_stream, name, ',');
-    getline(line_stream, album, ',');
-    getline(line_stream, album_id, ',');
-    getline(line_stream, artists, ',');
-    strncpy(record.id, id.c_str(), sizeof(record.id));
+    std::string id, name, album, album_id, artists;
+    std::getline(line_stream, id, ',');
+    std::getline(line_stream, name, ',');
+    std::getline(line_stream, album, ',');
+                 std::getline(line_stream, album_id, ',');
+                              std::getline(line_stream, artists, ',');
+                                           strncpy(record.id, id.c_str(), sizeof(record.id) - 1);
     record.id[sizeof(record.id) - 1] = '\0';
-    strncpy(record.name, name.c_str(), sizeof(record.name));
+    strncpy(record.name, name.c_str(), sizeof(record.name) - 1);
     record.name[sizeof(record.name) - 1] = '\0';
-    strncpy(record.album, album.c_str(), sizeof(record.album));
+    strncpy(record.album, album.c_str(), sizeof(record.album) - 1);
     record.album[sizeof(record.album) - 1] = '\0';
-    strncpy(record.album_id, album_id.c_str(), sizeof(record.album_id));
+    strncpy(record.album_id, album_id.c_str(), sizeof(record.album_id) - 1);
     record.album_id[sizeof(record.album_id) - 1] = '\0';
-    strncpy(record.artists, artists.c_str(), sizeof(record.artists));
+    strncpy(record.artists, artists.c_str(), sizeof(record.artists) - 1);
     record.artists[sizeof(record.artists) - 1] = '\0';
     records.push_back(record);
-
-  }
-
+  };
   return records;
 };
 

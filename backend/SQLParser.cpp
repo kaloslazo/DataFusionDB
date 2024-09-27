@@ -1,5 +1,7 @@
 #include "SQLParser.hpp"
 #include "ExtendibleHashingFile/ExtendibleRA.hpp"
+#include "SequentialFile/SequentialFileRA.hpp"
+#include "SequentialFile/SequentialFileRB.hpp"
 #include <regex>
 #include <sstream>
 #include <algorithm>
@@ -235,9 +237,13 @@ void SQLParser::create_table(const string &query) {
       }
     } else if (index_type == INDEX_SEQUENTIAL) {
       if (record_type == TYPE_RECORD_A) {
+        auto dataA = SequentialFileA::read_from_csvA(filename);
         seq_a = new SequentialFileA(filename, filename + ".aux", sizeof(SequentialRA));
+        seq_a->create_file(dataA);
       } else if (record_type == TYPE_RECORD_B) {
+        auto dataB = SequentialFileB::read_from_csvB(filename);
         seq_b = new SequentialFileB(filename, filename + ".aux", sizeof(SequentialRB));
+        seq_b->create_file(dataB);
       }
     } else if (index_type == INDEX_HASH) {
       if (record_type == TYPE_RECORD_A) {

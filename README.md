@@ -12,3 +12,12 @@ Por otro lado, el archivo `setup.py` sirve como un script de configuración que 
 2. Ejecutar el comando para generar el archivo `.so` con `chmod +x ./scripts/handle_link_connection.sh && ./scripts/handle_link_connection.sh`.
 3. Ejecutar el comando para ejecutar el servidor con `python frontend/interface.py`.
 
+## Consultas SQL
+```
+CREATE TABLE songs FROM FILE "./data/spotify_data_clean.csv"
+CREATE INDEX idx_songs ON songs USING SEQUENTIAL
+SELECT * FROM songs
+
+INSERT INTO songs VALUES ('7443958', 'Circles', 'Hollywood's Bleeding', 'ALB007', 'Post Malone')
+SELECT * FROM songs WHERE id = '7443958'
+```

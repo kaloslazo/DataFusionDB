@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <sstream>
 #include "SequentialFileRB.hpp"
+#include "SequentialRB.hpp"
 using namespace std;
 
 SequentialFileB::SequentialFileB(string filename_data, string aux_data, int record_size){
@@ -357,7 +358,7 @@ SequentialRB SequentialFileB::search(string key){
 
 };
 
-vector<SequentialRB> read_from_csvB(string filename){
+vector<SequentialRB> SequentialFileB::read_from_csvB(const string &filename) {
   vector<SequentialRB> records;
   ifstream file(filename);
   string line;

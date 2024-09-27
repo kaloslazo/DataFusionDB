@@ -1,13 +1,11 @@
 import sysconfig
-from setuptools import setup;
-from pybind11 import get_include;
-from pybind11.setup_helpers import Pybind11Extension, build_ext;
+from setuptools import setup
+from pybind11 import get_include
+from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-# configuracion para la compilacion de rutas
-pyb11_include = get_include();
-python_include_dir = sysconfig.get_path("include");
+pyb11_include = get_include()
+python_include_dir = sysconfig.get_path("include")
 
-# configuracion para los modulos, indicamos donde esta insertado la conexion
 ext_modules = [
     Pybind11Extension(
         "link_connection",
@@ -29,16 +27,13 @@ ext_modules = [
             "backend/AvlFile",
             "backend/SequentialFile",
         ],
-        language = "c++",
-        extra_compile_args = ["-std=c++17", "-g"],
+        language="c++",
+        extra_compile_args=["-std=c++17", "-g"],
     ),
 ]
 
-# se ejecuta con python setup.py build_ext --inplace
 setup(
-    name = "link_connection",
-    ext_modules = ext_modules,
-    cmdclass = {
-        'build_ext': build_ext
-    },
-);
+    name="link_connection",
+    ext_modules=ext_modules,
+    cmdclass={'build_ext': build_ext},
+)
