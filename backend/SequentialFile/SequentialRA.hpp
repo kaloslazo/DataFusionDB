@@ -38,13 +38,13 @@ struct SequentialRA {
   }
 
   inline RecordA to_record() const {
-    RecordA record;
-    record.id = std::string(id, 23);
-    record.name = std::string(name, 521);
-    record.album = std::string(album, 244);
-    record.album_id = std::string(album_id, 23);
-    record.artists = std::string(artists, 1124);
-    record.empty = false;
-    return record;
+      RecordA record;
+      record.id = std::string(id);
+      record.name = std::string(name);
+      record.album = std::string(album);
+      record.album_id = std::string(album_id);
+      record.artists = std::string(artists);
+      record.empty = false;
+      return record;
   }
 };

@@ -33,12 +33,12 @@ struct SequentialRB {
   }
 
   inline RecordB to_record() const {
-    RecordB record;
-    record.year = year;
-    record.make = std::string(make, 30);
-    record.model = std::string(model, 50);
-    record.vin = std::string(vin, 18);
-    record.empty = false;
-    return record;
+      RecordB record;
+      record.year = year;
+      record.make = std::string(make);
+      record.model = std::string(model);
+      record.vin = std::string(vin);
+      record.empty = false;
+      return record;
   }
 };
