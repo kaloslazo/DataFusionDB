@@ -43,10 +43,10 @@ SequentialFileB::SequentialFileB(string filename_data, string aux_data, int reco
   this->Record_size = record_size;
 
   //Create the files if they don't exist
-  ofstream file(filename_data, ios::app);
+  ofstream file(filename_data, ios::out);
   file.close();
 
-  ofstream file2(aux_data, ios::app);
+  ofstream file2(aux_data, ios::out);
   file2.close();
 
   this->aux_max_size = 100;
@@ -383,7 +383,7 @@ SequentialRB SequentialFileB::search(string key){
 void SequentialFileB::create_file(vector<SequentialRB>& records){
   sort(records.begin(), records.end(), compareB);
 
-  File_data.open(filename_data, ios::in | ios::out | ios::binary);
+  File_data.open(filename_data, ios::out | ios::binary);
   File_data.seekp(0, ios::beg);
 
   for (SequentialRB record : records) {
@@ -392,7 +392,7 @@ void SequentialFileB::create_file(vector<SequentialRB>& records){
 
   File_data.close();
 
-  File_data.open(aux_data, ios::in | ios::out | ios::binary);
+  File_data.open(aux_data, ios::out | ios::binary);
   File_data.close();
 
 
