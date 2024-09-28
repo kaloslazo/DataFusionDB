@@ -14,7 +14,7 @@ Por otro lado, el archivo `setup.py` sirve como un script de configuración que 
 
 ## Consultas SQL
 ```
-CREATE TABLE songs FROM FILE "./data/spotify_data_clean.csv"
+CREATE TABLE songs FROM FILE "./data/spotify_db.csv"
 CREATE INDEX idx_songs ON songs USING SEQUENTIAL
 SELECT * FROM songs
 

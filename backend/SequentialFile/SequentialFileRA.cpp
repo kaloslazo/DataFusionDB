@@ -4,7 +4,6 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
-#include <string.h>
 
 #include "SequentialRA.hpp"
 #include "SequentialFileRA.hpp"
@@ -375,7 +374,7 @@ SequentialRA SequentialFileA::search(string key) {
 void SequentialFileA::create_file(vector<SequentialRA>& records){
   sort(records.begin(), records.end(), compareA);
 
-  File_data.open(filename_data, ios::in | ios::out | ios::binary);
+  File_data.open(filename_data, ios::in | ios::out | ios::binary | ios::app);
   File_data.seekp(0, ios::beg);
 
   for (SequentialRA record : records) {

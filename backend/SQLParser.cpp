@@ -527,13 +527,17 @@ void SQLParser::create_index_structure() {
     }
   } else if (index_type == INDEX_SEQUENTIAL) {
     if (record_type == TYPE_RECORD_A) {
-      seq_a = new SequentialFileA(filename, filename + ".aux", sizeof(SequentialRA));
-      auto dataA = seq_a->read_csv(string(filename));
-      seq_a->create_file(dataA);
+      string index_filename = filename + ".index";
+      string aux_filename = filename + ".aux";
+      seq_a = new SequentialFileA(index_filename, aux_filename, sizeof(SequentialRA));
+      auto dataA = seq_a->read_csv(filename);  // Leer del CSV original
+      seq_a->create_file(dataA);  // Crear el archivo de índice
     } else if (record_type == TYPE_RECORD_B) {
-      seq_b = new SequentialFileB(filename, filename + ".aux", sizeof(SequentialRB));
-      auto dataB = seq_b->read_csv(string(filename));
-      seq_b->create_file(dataB);
+      string index_filename = filename + ".index";
+      string aux_filename = filename + ".aux";
+      seq_b = new SequentialFileB(index_filename, aux_filename, sizeof(SequentialRB));
+      auto dataB = seq_b->read_csv(filename);  // Leer del CSV original
+      seq_b->create_file(dataB);  // Crear el archivo de índice
     }
   } else if (index_type == INDEX_HASH) {
     if (record_type == TYPE_RECORD_A) {
