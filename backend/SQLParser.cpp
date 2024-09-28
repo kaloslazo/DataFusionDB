@@ -6,6 +6,29 @@
 #include <sstream>
 #include <algorithm>
 
+bool SQLParser::compare_values(const string& value, const string& op, const string& compare_to) {
+    if (op == "=") return value == compare_to;
+    if (op == ">") return value > compare_to;
+    if (op == ">=") return value >= compare_to;
+    if (op == "<") return value < compare_to;
+    if (op == "<=") return value <= compare_to;
+    return false;
+}
+
+bool SQLParser::compare_record_a_field(const RecordA* record, const string& field, const string& op, const string& value) {
+    if (field == "name") return compare_values(record->name, op, value);
+    if (field == "album") return compare_values(record->album, op, value);
+    if (field == "album_id") return compare_values(record->album_id, op, value);
+    if (field == "artists") return compare_values(record->artists, op, value);
+    return false;
+}
+
+bool SQLParser::compare_record_b_field(const RecordB* record, const string& field, const string& op, const string& value) {
+    if (field == "year") return compare_values(to_string(record->year), op, value);
+    if (field == "make") return compare_values(record->make, op, value);
+    if (field == "model") return compare_values(record->model, op, value);
+    return false;
+}
 
 // Modificar la función execute_query para incluir CREATE INDEX
 vector<Record*> SQLParser::execute_query(const string& query) {
@@ -74,29 +97,41 @@ std::optional<Record*> SQLParser::search_id(const std::string& id) {
 }
 
 // Función para SELECT
-vector<Record*> SQLParser::select_query(const string &query) {
+vector<Record*> SQLParser::select_query(const string& query) {
   vector<Record*> result;
   if (!table_created) {
     cerr << "Error: Table not created" << endl;
     return result;
   }
 
-  regex select_regex(R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(\w+)\s*=\s*('[^']*'|\d+))?)", regex::icase);
+  regex select_regex(
+    R"(select\s+\*\s+from\s+(\w+)(?:\s+where\s+(\w+)\s*(=|>=|<=|>|<)\s*('[^']*'|\d+)(?:\s+(and)\s+(\w+)\s*(=|>=|<=|>|<)\s*('[^']*'|\d+))?)?)",
+    regex::icase);
   smatch match;
 
   if (regex_match(query, match, select_regex)) {
     string table = match[1];
-    string column = match[2];
-    string value = match[3];
+    string column1 = match[2];
+    string op1 = match[3];
+    string value1 = match[4];
+    string logical_op = match[5];
+    string column2 = match[6];
+    string op2 = match[7];
+    string value2 = match[8];
 
-    // Remover comillas simples si existen
-    if (value.front() == '\'' && value.back() == '\'') {
-      value = value.substr(1, value.length() - 2);
-    }
-    
+    // Remove single quotes if they exist
+    auto remove_quotes = [](string& val) {
+      if (val.front() == '\'' && val.back() == '\'') {
+        val = val.substr(1, val.length() - 2);
+      }
+    };
+
+    remove_quotes(value1);
+    remove_quotes(value2);
+
     cout << "Executing SELECT query on table: " << table << endl;
 
-    if (column.empty()) {  // No WHERE clause
+    if (column1.empty()) {  // No WHERE clause
       if (index_type == INDEX_AVL) {
         if (record_type == TYPE_RECORD_A) {
           vector<AvlRA> all_records = avl_a->inorder();
@@ -111,16 +146,12 @@ vector<Record*> SQLParser::select_query(const string &query) {
         }
       } else if (index_type == INDEX_SEQUENTIAL) {
         if (record_type == TYPE_RECORD_A) {
-          cout << "Using SequentialFileA" << endl;
           vector<SequentialRA> all_records = seq_a->range_search("", "~");
-          cout << "Retrieved " << all_records.size() << " records" << endl;
           for (const auto& rec : all_records) {
             result.push_back(new RecordA(rec.to_record()));
           }
         } else if (record_type == TYPE_RECORD_B) {
-          cout << "Using SequentialFileB" << endl;
           vector<SequentialRB> all_records = seq_b->range_search("", "~");
-          cout << "Retrieved " << all_records.size() << " records" << endl;
           for (const auto& rec : all_records) {
             result.push_back(new RecordB(rec.to_record()));
           }
@@ -130,10 +161,58 @@ vector<Record*> SQLParser::select_query(const string &query) {
       }
     } else {  // WHERE clause
       if (index_type == INDEX_AVL || index_type == INDEX_SEQUENTIAL) {
-        if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
-          auto record = search_id(value);
-          if (record) {
-            result.push_back(record.value());
+        if (column1 == "id" || column1 == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
+          vector<Record*> all_records;
+          string start_key = (op1 == ">" || op1 == ">=") ? value1 : "";
+          string end_key = (op2 == "<" || op2 == "<=") ? value2 : "~";
+
+          if (index_type == INDEX_AVL) {
+            if (record_type == TYPE_RECORD_A) {
+              vector<AvlRA> avl_records = avl_a->inorder();
+              for (const auto& rec : avl_records) {
+                all_records.push_back(new RecordA(rec.to_record()));
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              vector<AvlRB> avl_records = avl_b->inorder();
+              for (const auto& rec : avl_records) {
+                all_records.push_back(new RecordB(rec.to_record()));
+              }
+            }
+          } else if (index_type == INDEX_SEQUENTIAL) {
+            if (record_type == TYPE_RECORD_A) {
+              vector<SequentialRA> seq_records = seq_a->range_search(start_key, end_key);
+              for (const auto& rec : seq_records) {
+                all_records.push_back(new RecordA(rec.to_record()));
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              vector<SequentialRB> seq_records = seq_b->range_search(start_key, end_key);
+              for (const auto& rec : seq_records) {
+                all_records.push_back(new RecordB(rec.to_record()));
+              }
+            }
+          }
+
+          // Apply the conditions
+          for (const auto& rec : all_records) {
+            bool condition_met = true;
+            if (record_type == TYPE_RECORD_A) {
+              RecordA* record_a = static_cast<RecordA*>(rec);
+              condition_met = compare_values(record_a->id, op1, value1);
+              if (logical_op == "and" && condition_met) {
+                condition_met = compare_values(record_a->id, op2, value2);
+              }
+            } else if (record_type == TYPE_RECORD_B) {
+              RecordB* record_b = static_cast<RecordB*>(rec);
+              condition_met = compare_values(record_b->vin, op1, value1);
+              if (logical_op == "and" && condition_met) {
+                condition_met = compare_values(record_b->vin, op2, value2);
+              }
+            }
+            if (condition_met) {
+              result.push_back(rec);
+            } else {
+              delete rec;
+            }
           }
         } else {
           // Linear search for other columns
@@ -165,38 +244,36 @@ vector<Record*> SQLParser::select_query(const string &query) {
           }
 
           for (const auto& rec : all_records) {
+            bool condition_met = false;
             if (record_type == TYPE_RECORD_A) {
               RecordA* record_a = static_cast<RecordA*>(rec);
-              if ((column == "name" && record_a->name == value) ||
-                (column == "album" && record_a->album == value) ||
-                (column == "album_id" && record_a->album_id == value) ||
-                (column == "artists" && record_a->artists == value)) {
-                result.push_back(rec);
-              } else {
-                delete rec;
+              condition_met = compare_record_a_field(record_a, column1, op1, value1);
+              if (logical_op == "and" && condition_met) {
+                condition_met = compare_record_a_field(record_a, column2, op2, value2);
               }
             } else if (record_type == TYPE_RECORD_B) {
               RecordB* record_b = static_cast<RecordB*>(rec);
-              if ((column == "year" && to_string(record_b->year) == value) ||
-                (column == "make" && record_b->make == value) ||
-                (column == "model" && record_b->model == value)) {
-                result.push_back(rec);
-              } else {
-                delete rec;
+              condition_met = compare_record_b_field(record_b, column1, op1, value1);
+              if (logical_op == "and" && condition_met) {
+                condition_met = compare_record_b_field(record_b, column2, op2, value2);
               }
+            }
+            if (condition_met) {
+              result.push_back(rec);
+            } else {
+              delete rec;
             }
           }
         }
-      } 
-      else if (index_type == INDEX_HASH) {
-        if (column == "id" || column == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
+      } else if (index_type == INDEX_HASH) {
+        if (column1 == "id" || column1 == "vin") {  // Assuming 'id' for RecordA and 'vin' for RecordB
           if (record_type == TYPE_RECORD_A) {
-            vector<EHRecordA> records = eh_a->search(value);
+            vector<EHRecordA> records = eh_a->search(value1);
             if (!records.empty()) {
               result.push_back(new RecordA(records[0].to_record()));
             }
           } else if (record_type == TYPE_RECORD_B) {
-            vector<EHRecordB> records = eh_b->search(value);
+            vector<EHRecordB> records = eh_b->search(value1);
             if (!records.empty()) {
               result.push_back(new RecordB(records[0].to_record()));
             }
@@ -451,8 +528,12 @@ void SQLParser::create_index_structure() {
   } else if (index_type == INDEX_SEQUENTIAL) {
     if (record_type == TYPE_RECORD_A) {
       seq_a = new SequentialFileA(filename, filename + ".aux", sizeof(SequentialRA));
+      auto dataA = seq_a->read_csv(string(filename));
+      seq_a->create_file(dataA);
     } else if (record_type == TYPE_RECORD_B) {
       seq_b = new SequentialFileB(filename, filename + ".aux", sizeof(SequentialRB));
+      auto dataB = seq_b->read_csv(string(filename));
+      seq_b->create_file(dataB);
     }
   } else if (index_type == INDEX_HASH) {
     if (record_type == TYPE_RECORD_A) {

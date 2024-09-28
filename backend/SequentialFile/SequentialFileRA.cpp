@@ -11,37 +11,36 @@
 using namespace std;
 
 vector<SequentialRA> SequentialFileA::read_csv(string filename) {
-  std::vector<SequentialRA> records;
-  std::ifstream file(filename);
-  std::string line;
+  vector<SequentialRA> records;
+  ifstream file(filename);
+  string line;
   bool header = true;
-  while (std::getline(file, line)) {
+  while (getline(file, line)) {
     if (header) {
       header = false;
       continue;
     }
-    std::istringstream line_stream(line);
+    stringstream line_stream(line);
+    string id, name, album, album_id, artists;
+
+    getline(line_stream, id, ',');
+    getline(line_stream, name, ',');
+    getline(line_stream, album, ',');
+    getline(line_stream, album_id, ',');
+    getline(line_stream, artists);
+
     SequentialRA record;
-    std::string id, name, album, album_id, artists;
-    std::getline(line_stream, id, ',');
-    std::getline(line_stream, name, ',');
-    std::getline(line_stream, album, ',');
-                 std::getline(line_stream, album_id, ',');
-                              std::getline(line_stream, artists, ',');
-                                           strncpy(record.id, id.c_str(), sizeof(record.id) - 1);
-    record.id[sizeof(record.id) - 1] = '\0';
-    strncpy(record.name, name.c_str(), sizeof(record.name) - 1);
-    record.name[sizeof(record.name) - 1] = '\0';
-    strncpy(record.album, album.c_str(), sizeof(record.album) - 1);
-    record.album[sizeof(record.album) - 1] = '\0';
-    strncpy(record.album_id, album_id.c_str(), sizeof(record.album_id) - 1);
-    record.album_id[sizeof(record.album_id) - 1] = '\0';
-    strncpy(record.artists, artists.c_str(), sizeof(record.artists) - 1);
-    record.artists[sizeof(record.artists) - 1] = '\0';
+    record.setId(id);
+    record.setName(name);
+    record.setAlbum(album);
+    record.setAlbumId(album_id);
+    record.setArtists(artists);
+
+    record.Print();
     records.push_back(record);
-  };
+  }
   return records;
-};
+}
 
 SequentialFileA::SequentialFileA(string filename_data, string aux_data, int record_size){
   this->filename_data = filename_data;
@@ -99,15 +98,14 @@ void SequentialFileA::insert_aux(SequentialRA record){
   File_data.close();
 };
 
-void SequentialFileA::insert(SequentialRA record){
-  cout<<"Inserting record"<<endl;
-  if (get_num_records("aux") == this->aux_max_size)
+void SequentialFileA::insert(SequentialRA record) {
+  if (get_num_records("aux") >= this->aux_max_size)
     merge();
 
-  insert_aux(record);
-
-  return;
-};
+  File_data.open(aux_data, ios::app | ios::binary);
+  File_data.write(reinterpret_cast<const char*>(&record), sizeof(SequentialRA));
+  File_data.close();
+}
 
 void SequentialFileA::remove_record(string key) {
   SequentialRA record;
@@ -341,49 +339,37 @@ vector<SequentialRA> SequentialFileA::range_search(string begin_key, string end_
     }
     File_data.close();
   }
+<<<<<<< HEAD
 
   sort(records.begin(), records.end(), compareA);
   return records;
 }
 
 SequentialRA SequentialFileA::search(string key){
+=======
+  
+  cout << "Records found: " << records.size() << endl;
+  sort(records.begin(), records.end(), compareA);
+  return records;
+}
+>>>>>>> 764856e (feat: sequential record a workinggg porfin cholo voy a llorar)
 
+SequentialRA SequentialFileA::search(string key) {
   SequentialRA record;
 
-  File_data.open(filename_data, ios::in | ios::out | ios::binary);
-
-  if (!File_data) {
-    cerr << "Error opening file!" << endl;
-    return record;
-  }
-
-  File_data.seekg(0, ios::beg);
-
-  int left = 0, right, middle;
-  File_data.seekg(0, ios::end);
-  right = File_data.tellg() / Record_size - 1;
-
-  int first_pos = -1;
-
-  while (left <= right) {
-    middle = (left + right) / 2;
-    File_data.seekg(middle * Record_size, ios::beg);
-    File_data.read(reinterpret_cast<char*>(&record), Record_size);
-
+  // Search in main data file
+  File_data.open(filename_data, ios::in | ios::binary);
+  while (File_data.read(reinterpret_cast<char*>(&record), sizeof(SequentialRA))) {
     if (record.key() == key) {
       File_data.close();
       return record;
     }
-    else if (record.key() > key) 
-      right = middle - 1;
-    else
-      left = middle + 1;
   }
-  File_data.close(); 
+  File_data.close();
 
-  File_data.open(aux_data, ios::in | ios::out | ios::binary);
-  File_data.seekg(0, ios::beg);
-  while (File_data.read((char*) &record, Record_size)) {
+  // Search in auxiliary file
+  File_data.open(aux_data, ios::in | ios::binary);
+  while (File_data.read(reinterpret_cast<char*>(&record), sizeof(SequentialRA))) {
     if (record.key() == key) {
       File_data.close();
       return record;
@@ -392,8 +378,8 @@ SequentialRA SequentialFileA::search(string key){
   File_data.close();
 
   cout << "Record not found" << endl;
-  return record;
-};
+  return SequentialRA();
+}
 
 void SequentialFileA::create_file(vector<SequentialRA>& records){
   sort(records.begin(), records.end(), compareA);

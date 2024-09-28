@@ -1,30 +1,39 @@
 #ifndef SEQUENTIALRA_HPP
 #define SEQUENTIALRA_HPP
-
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 #include "../Record.hpp"
 
 struct SequentialRA {
-  char id[23];
-  char name[521];
-  char album[244];
-  char album_id[23];
-  char artists[1124];
+  char id[24];       // Increased by 1 for null terminator
+  char name[522];    // Increased by 1 for null terminator
+  char album[245];   // Increased by 1 for null terminator
+  char album_id[24]; // Increased by 1 for null terminator
+  char artists[1125];// Increased by 1 for null terminator
 
-  SequentialRA() = default;
+  SequentialRA() {
+    memset(this, 0, sizeof(SequentialRA));
+  }
 
   inline SequentialRA(const RecordA& record) {
-    strncpy(id, record.id.c_str(), sizeof(id) - 1);
-    id[sizeof(id) - 1] = '\0';
-    strncpy(name, record.name.c_str(), sizeof(name) - 1);
-    name[sizeof(name) - 1] = '\0';
-    strncpy(album, record.album.c_str(), sizeof(album) - 1);
-    album[sizeof(album) - 1] = '\0';
-    strncpy(album_id, record.album_id.c_str(), sizeof(album_id) - 1);
-    album_id[sizeof(album_id) - 1] = '\0';
-    strncpy(artists, record.artists.c_str(), sizeof(artists) - 1);
-    artists[sizeof(artists) - 1] = '\0';
+    setId(record.id);
+    setName(record.name);
+    setAlbum(record.album);
+    setAlbumId(record.album_id);
+    setArtists(record.artists);
+  }
+
+  void setId(const std::string& value) { copyAndTruncate(id, value, sizeof(id)); }
+  void setName(const std::string& value) { copyAndTruncate(name, value, sizeof(name)); }
+  void setAlbum(const std::string& value) { copyAndTruncate(album, value, sizeof(album)); }
+  void setAlbumId(const std::string& value) { copyAndTruncate(album_id, value, sizeof(album_id)); }
+  void setArtists(const std::string& value) { copyAndTruncate(artists, value, sizeof(artists)); }
+
+  static void copyAndTruncate(char* dest, const std::string& src, size_t maxLen) {
+    size_t len = std::min(src.length(), maxLen - 1);
+    std::copy_n(src.begin(), len, dest);
+    dest[len] = '\0';
   }
 
   inline void Print() const {
@@ -36,19 +45,17 @@ struct SequentialRA {
   }
 
   inline std::string key() const { 
-    return std::string(id, 23); 
+    return std::string(id);
   }
 
   inline RecordA to_record() const {
-      RecordA record;
-      record.id = std::string(id);
-      record.name = std::string(name);
-      record.album = std::string(album);
-      record.album_id = std::string(album_id);
-      record.artists = std::string(artists);
-      record.empty = false;
-      return record;
+    RecordA record;
+    record.id = id;
+    record.name = name;
+    record.album = album;
+    record.album_id = album_id;
+    record.artists = artists;
+    return record;
   }
 };
-
 #endif // SEQUENTIALRA_HPP

@@ -44,3 +44,13 @@ SELECT * FROM songs WHERE album = 'After Hours'
 
 DELETE FROM songs WHERE id = '4'
 SELECT * FROM songs
+
+CREATE TABLE cars FROM FILE "./data/car_prices_extended.csv"
+CREATE INDEX idx_cars ON cars USING SEQUENTIAL
+SELECT * FROM cars
+
+CREATE TABLE songs FROM FILE "./data/spotify_db.csv"
+CREATE INDEX idx_songs ON songs USING SEQUENTIAL
+SELECT * FROM songs
+SELECT * FROM songs WHERE id = '000TJYlDLPM01ebX8QtIUS'
+SELECT * FROM songs WHERE id >= '000TJYlDLPM01ebX8QtIUS' AND id <= '001vTY6ocymMmV5IEbQtv1'

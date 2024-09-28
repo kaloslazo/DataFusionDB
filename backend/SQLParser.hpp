@@ -65,6 +65,10 @@ public:
   SQLParser();
   ~SQLParser();
   vector<Record*> execute_query(const string& query);
+
+  bool compare_values(const string& value, const string& op, const string& compare_to);
+  bool compare_record_a_field(const RecordA* record, const string& field, const string& op, const string& value);
+  bool compare_record_b_field(const RecordB* record, const string& field, const string& op, const string& value);
 };
 
 #endif // SQLPARSER_H
