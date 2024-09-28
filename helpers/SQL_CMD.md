@@ -2,8 +2,8 @@
 
 ## Crear una base de datos
 ```sql
-CREATE TABLE songs FROM FILE "./data/spotify_data_clean.csv"
-CREATE TABLE songs FROM FILE "./data/car_prices_demo.csv"
+CREATE TABLE songs FROM FILE "./data/spotify_db.csv"
+CREATE TABLE cars FROM FILE "./data/car_prices_demo.csv"
 ```
 
 ---
@@ -86,7 +86,7 @@ SELECT * FROM songs WHERE id = '7443958'
 ```
 SELECT * FROM songs
 SELECT * FROM songs WHERE id = '7443958'
-SELECT * FROM songs WHERE id >= '3' AND id <= '6'
+SELECT * FROM songs WHERE id >= '3' AND id <= '7'
 SELECT * FROM songs WHERE album = 'After Hours'
 ```
 
