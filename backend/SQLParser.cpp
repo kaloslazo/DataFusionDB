@@ -168,14 +168,14 @@ vector<Record*> SQLParser::select_query(const string& query) {
 
           if (index_type == INDEX_AVL) {
             if (record_type == TYPE_RECORD_A) {
-              vector<AvlRA> avl_records = avl_a->inorder();
+              vector<RecordA> avl_records = avl_a->range_search(start_key, end_key);
               for (const auto& rec : avl_records) {
-                all_records.push_back(new RecordA(rec.to_record()));
+                all_records.push_back(new RecordA(rec));
               }
             } else if (record_type == TYPE_RECORD_B) {
-              vector<AvlRB> avl_records = avl_b->inorder();
+              vector<RecordB> avl_records = avl_b->range_search(start_key, end_key);
               for (const auto& rec : avl_records) {
-                all_records.push_back(new RecordB(rec.to_record()));
+                all_records.push_back(new RecordB(rec));
               }
             }
           } else if (index_type == INDEX_SEQUENTIAL) {
