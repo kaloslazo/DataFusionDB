@@ -339,20 +339,11 @@ vector<SequentialRA> SequentialFileA::range_search(string begin_key, string end_
     }
     File_data.close();
   }
-<<<<<<< HEAD
-
-  sort(records.begin(), records.end(), compareA);
-  return records;
-}
-
-SequentialRA SequentialFileA::search(string key){
-=======
   
   cout << "Records found: " << records.size() << endl;
   sort(records.begin(), records.end(), compareA);
   return records;
 }
->>>>>>> 764856e (feat: sequential record a workinggg porfin cholo voy a llorar)
 
 SequentialRA SequentialFileA::search(string key) {
   SequentialRA record;
