@@ -37,9 +37,9 @@ struct SequentialRB {
   inline RecordB to_record() const {
     RecordB record;
     record.year = year;
-    record.make = string(make, 30);
-    record.model = string(model, 50);
-    record.vin = string(vin, 18);
+    record.make = string(make);
+    record.model = string(model);
+    record.vin = string(vin);
     record.empty = false;
 
     return record;
