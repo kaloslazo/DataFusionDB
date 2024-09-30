@@ -5,7 +5,8 @@ import pandas as pd
 delimiter = "\n" + "-" * 50
 
 # data analysis for spotify
-df = pd.read_csv("./data/tracks_features.csv", encoding="ISO-8859-1")
+df = pd.read_csv("./data/car_prices.csv", encoding="ISO-8859-1")
+print("Size", df.shape)
 
 print(delimiter)
 print("Dataframe information:")
